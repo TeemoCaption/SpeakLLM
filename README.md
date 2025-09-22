@@ -212,11 +212,12 @@ SpeechLLM/
 
 ## 🔬 技術細節
 
-### 繁體中文優化策略
-- **Whisper Medium**：使用更大的 Whisper 模型提升繁體中文識別準確度
+### 中文優化策略（台灣口音專用）
+- **Whisper Medium**：使用更大的 Whisper 模型提升台灣中文識別準確度
 - **拼音音節對齊**：以拼音音節（含聲調）為基本對齊單位，如 "ni3 hao3 ma5"
-- **繁體中文保持**：保持原始繁體中文，不進行繁簡轉換
-- **中文分詞**：支援 jieba 和 pkuseg 分詞器，適配繁體中文
+- **繁簡轉換**：支援簡體轉繁體，統一處理台灣中文文字
+- **台灣口音專用**：專門針對台灣國語進行優化
+- **中文分詞**：支援 jieba 和 pkuseg 分詞器，適配台灣繁體中文
 - **DTW 對齊**：可選的動態時間規劃對齊，提升對齊精度
 
 ### RVQ 編碼策略
@@ -295,12 +296,10 @@ class CustomAudioCodec(nn.Module):
 
 ## 📊 中文資料集支援
 
-### 支援的繁體中文資料集
-- **AISHELL-1/2/4**：高品質中文朗讀和會議語音（可適配繁體）
-- **WenetSpeech**：大規模中文語音資料集
+### 支援的中文資料集（台灣口音）
+- **AISHELL-1/2/4**：高品質中文朗讀和會議語音（可適配台灣口音）
+- **WenetSpeech**：大規模中文語音資料集（可適配台灣口音）
 - **Common Voice zh-TW**：繁體中文群眾錄音，台灣口音
-- **Common Voice zh-HK**：繁體中文群眾錄音，香港口音
-- **THCHS-30**：清華中文語音資料庫（可適配繁體）
 
 ### 資料集配置步驟
 
@@ -309,25 +308,25 @@ class CustomAudioCodec(nn.Module):
 
 ```yaml
 data:
+  # 中文口音支援
+  multi_accent:
+    enable: true
+    accents: ["zh-TW"]
+    accent_weights: [1.0]
+  
   chinese_datasets:
-    - type: "AISHELL"
-      data_dir: "/home/user/data/AISHELL-1"  # 修改為實際路徑
-      splits: ["train", "dev", "test"]
     - type: "CommonVoice"
-      data_dir: "/home/user/data/common_voice/zh-TW"  # 修改為實際路徑
+      data_dir: "/home/user/data/common_voice/zh-TW"  # 繁體中文（台灣）
       language: "zh-TW"
       splits: ["train", "dev", "test"]
-    - type: "WenetSpeech"
-      data_dir: "/home/user/data/wenetspeech"  # 修改為實際路徑
-      splits: ["train", "dev", "test"]
-```
+      accent: "zh-TW"
 
 #### 2. 資料集使用範例
 ```bash
-# 下載和準備 AISHELL-1
-python scripts/prepare_data.py --dataset AISHELL --action prepare
+# 下載和準備 Common Voice zh-TW
+python scripts/prepare_data.py --dataset CommonVoice --action prepare
 
-# 創建混合資料集
+# 創建台灣口音混合資料集
 python scripts/prepare_data.py --action mixed
 
 # 驗證資料集完整性
@@ -363,9 +362,9 @@ python scripts/prepare_data.py --action validate
 - **繁體中文保持**：保持原始繁體中文，不進行繁簡轉換
 - **階層式 RVQ**：L1 語義層 > L2-L4 聲學層的權重策略
 - **多口音支援**：支援台灣、香港等繁體中文地區口音
-- **繁體中文資料集**：完整支援 Common Voice zh-TW/zh-HK 等
+- **繁體中文資料集**：專門支援 Common Voice zh-TW 台灣口音
 - **文字正規化**：數字、量詞、標點符號智能處理（適配繁體）
-- **三階段訓練**：專門針對繁體中文的訓練策略優化
+- **三階段訓練**：專門針對台灣中文的訓練策略優化
 
 ### v0.1.0 (2024-01-XX)
 - 初始版本發布
@@ -373,36 +372,36 @@ python scripts/prepare_data.py --action validate
 - 支援三階段訓練策略
 - 提供完整的訓練和推理腳本
 
-## 🇹🇼 繁體中文使用快速入門
+## 🇹🇼 台灣中文使用快速入門
 
-### 準備繁體中文環境
+### 準備台灣中文環境
 ```bash
 # 安裝繁體中文處理依賴
-pip install jieba pypinyin
+pip install jieba pypinyin opencc-python-reimplemented
 
 # 1. 檢視資料集下載指南
 python scripts/prepare_data.py --action download
 
-# 2. 下載並解壓資料集後，修改 configs/default_config.yaml 中的 data_dir 路徑
+# 2. 下載並解壓 Common Voice zh-TW 資料集，修改 configs/default_config.yaml 中的 data_dir 路徑
 
-# 3. 處理各資料集
+# 3. 處理台灣中文資料集
 python scripts/prepare_data.py --action prepare
 
-# 4. 創建混合訓練資料集
+# 4. 創建台灣口音訓練資料集
 python scripts/prepare_data.py --action mixed
 
-# 5. 開始繁體中文訓練
+# 5. 開始台灣中文訓練
 python scripts/train.py --config configs/default_config.yaml
 ```
 
-### 繁體中文推理示例
+### 台灣中文推理示例
 ```python
 from speechllm.align.alignment import ChineseTextProcessor
 
-# 繁體中文文字處理（不轉換）
-processor = ChineseTextProcessor(convert_traditional=False)
-text = processor.normalize_text("你好，今天天氣如何？")
+# 台灣中文文字處理（啟用繁簡轉換）
+processor = ChineseTextProcessor(convert_traditional=True)
+text = processor.normalize_text("你好，今天天气如何？")  # 簡體輸入會轉為繁體
 
-# 繁體中文語音對話
+# 台灣中文語音對話
 response = engine.generate_response(input_text=text, mode="TIAO")
 ```

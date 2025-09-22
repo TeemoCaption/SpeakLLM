@@ -1,5 +1,5 @@
 # SpeechLLM 預設配置文件
-# 
+#
 # 使用前請務必：
 # 1. 修改 data.chinese_datasets 中的 data_dir 為實際資料集路徑
 # 2. 執行 scripts/prepare_data.py 生成訓練資料
@@ -13,24 +13,24 @@ model:
   use_lora: true
   lora_rank: 64
   lora_alpha: 128
-  
+
   # Whisper encoder 配置
   whisper_model_name: "openai/whisper-medium"
   freeze_whisper: true
-  
+
   # Q-Former 配置
   num_query_tokens: 32
   qformer_hidden_size: 768
   qformer_num_layers: 6
-  
+
   # 音訊 Transformer 配置
   audio_transformer_layers: 6
   audio_transformer_hidden_size: 512
-  
+
   # RVQ 配置
   num_rvq_layers: 4
   codebook_size: 256
-  
+
   # 訓練配置
   use_gradient_checkpointing: true
   mixed_precision: true
@@ -41,7 +41,7 @@ training:
   output_dir: "./outputs"
   run_name: "speechllm_training"
   seed: 42
-  
+
   # 訓練參數
   num_epochs: 10
   batch_size: 4
@@ -50,33 +50,33 @@ training:
   weight_decay: 0.01
   warmup_steps: 1000
   max_grad_norm: 1.0
-  
+
   # 中文三階段訓練
-  stage_a_epochs: 4  # 中文輸入對齊階段（AISHELL/THCHS/Common Voice）
-  stage_b_epochs: 4  # 中文語音輸出階段（AISHELL-3/BZNSYP/ESD）
-  stage_c_epochs: 6  # 中文多任務聯訓階段（四種模式+多口音）
-  
+  stage_a_epochs: 4 # 中文輸入對齊階段（AISHELL/THCHS/Common Voice）
+  stage_b_epochs: 4 # 中文語音輸出階段（AISHELL-3/BZNSYP/ESD）
+  stage_c_epochs: 6 # 中文多任務聯訓階段（四種模式+多口音）
+
   # 中文優化損失權重
   text_loss_weight: 1.0
-  rvq_loss_weight: 0.6  # 提高 RVQ 損失權重
-  alignment_loss_weight: 0.4  # 提高對齊損失權重（中文重要）
-  kl_loss_weight: 0.3  # 提高 KL 蒸餾權重（Stage A 重要）
-  
+  rvq_loss_weight: 0.6 # 提高 RVQ 損失權重
+  alignment_loss_weight: 0.4 # 提高對齊損失權重（中文重要）
+  kl_loss_weight: 0.3 # 提高 KL 蒸餾權重（Stage A 重要）
+
   # 階層式 RVQ 損失權重（L1 語義層 > L2-L4 聲學層）
-  rvq_layer_weights: [3.0, 1.5, 1.0, 1.0]  # L1, L2, L3, L4
-  
+  rvq_layer_weights: [3.0, 1.5, 1.0, 1.0] # L1, L2, L3, L4
+
   # 評估和保存
   eval_steps: 500
   save_steps: 1000
   logging_steps: 100
   save_total_limit: 3
-  
+
   # 硬體配置
   fp16: true
   bf16: false
   dataloader_num_workers: 4
   dataloader_pin_memory: true
-  
+
   # Wandb 配置
   use_wandb: true
   wandb_project: "speechllm"
@@ -87,64 +87,55 @@ data:
   # 資料集路徑（由 prepare_data.py --action mixed 產生）
   train_data_file: "./data/train_chinese.json"
   eval_data_file: "./data/dev_chinese.json"
-  
+
   # 資料處理參數
   max_text_length: 512
-  max_audio_length: 160000  # 10 秒 at 16kHz
-  sample_rate: 16000  # 若使用 24kHz 資料集，請修改為 24000 並調整相關音訊處理參數
-  
-  # 繁體中文處理配置
-  language: "zh-TW"
-  convert_traditional: false  # 保持繁體中文，不轉換
-  use_tone: true  # 使用聲調
-  alignment_unit: "syllable"  # syllable, character, word
-  segment_method: "jieba"  # jieba, pkuseg
-  
+  max_audio_length: 160000 # 10 秒 at 16kHz
+  sample_rate: 16000 # 若使用 24kHz 資料集，請修改為 24000 並調整相關音訊處理參數
+
+  # 中文處理配置
+  language: "zh" # 通用中文，支援多口音
+  convert_traditional: true # 啟用繁簡轉換處理
+  use_tone: true # 使用聲調
+  alignment_unit: "syllable" # syllable, character, word
+  segment_method: "jieba" # jieba, pkuseg
+
   # 中文文字正規化
   text_normalization:
-    normalize_numbers: true  # 數字正規化（一千二 → 1200）
-    normalize_punctuation: true  # 標點符號處理
-    preserve_english: true  # 保留英文縮寫
-    normalize_measure_words: true  # 量詞統一
-  
-  # 繁體中文口音支援
+    normalize_numbers: true # 數字正規化（一千二 → 1200）
+    normalize_punctuation: true # 標點符號處理
+    preserve_english: true # 保留英文縮寫
+    normalize_measure_words: true # 量詞統一
+
+  # 中文口音支援
   multi_accent:
-    enable: true  # 啟用多口音訓練
-    accents: ["zh-TW", "zh-HK"]  # 支援的繁體中文口音
-    accent_weights: [0.8, 0.2]  # 各口音的權重（台灣為主，香港為輔）
-    
+    enable: true # 啟用多口音訓練
+    accents: ["zh-TW"] # 只支援台灣口音
+    accent_weights: [1.0] # 台灣口音權重
+
   # 對齊策略
   alignment_strategy:
-    use_dtw: false  # 是否使用 DTW 對齊
-    use_mfa: false  # 是否使用 MFA 強制對齊
-    whisper_word_timestamps: true  # 使用 Whisper 詞級時間戳
-    alignment_confidence_threshold: 0.7  # 對齊置信度閾值
-  
-  # 繁體中文資料集配置
+    use_dtw: false # 是否使用 DTW 對齊
+    use_mfa: false # 是否使用 MFA 強制對齊
+    whisper_word_timestamps: true # 使用 Whisper 詞級時間戳
+    alignment_confidence_threshold: 0.7 # 對齊置信度閾值
+
+  # 中文資料集配置（支援多口音）
   # 請將 data_dir 改為您實際下載並解壓的路徑
   chinese_datasets:
-    - type: "AISHELL"
-      data_dir: "/path/to/your/AISHELL-1"  # 請修改為實際路徑，例如："/home/user/data/AISHELL-1"
-      splits: ["train", "dev", "test"]
     - type: "CommonVoice"
-      data_dir: "/path/to/your/common_voice/zh-TW"  # 請修改為實際路徑，例如："/home/user/data/common_voice/zh-TW"
+      data_dir: "/path/to/your/common_voice/zh-TW" # 繁體中文（台灣）
       language: "zh-TW"
       splits: ["train", "dev", "test"]
-    - type: "WenetSpeech"
-      data_dir: "/path/to/your/wenetspeech"  # 請修改為實際路徑，例如："/home/user/data/wenetspeech"
-      splits: ["train", "dev", "test"]
-    # 新增其他資料集範例（需同時擴充 scripts/prepare_data.py）：
-    # - type: "AISHELL-3"
-    #   data_dir: "/path/to/your/AISHELL-3"
-    #   splits: ["train", "dev", "test"]
-  
+      accent: "zh-TW"
+
   # 模式權重
   mode_weights:
     TITO: 0.3
     AITO: 0.3
     TIAO: 0.2
     AIAO: 0.2
-  
+
   # 快取配置
   cache_audio_tokens: true
   cache_dir: "./cache"
@@ -158,22 +149,22 @@ inference:
   top_p: 0.9
   do_sample: true
   repetition_penalty: 1.1
-  
+
   # 音訊參數
   sample_rate: 16000
-  chunk_duration: 0.32  # 320ms
-  max_audio_length: 10.0  # 秒
-  
+  chunk_duration: 0.32 # 320ms
+  max_audio_length: 10.0 # 秒
+
   # 串流參數
   stream_chunk_size: 1024
   vad_threshold: 0.5
   silence_threshold: 2.0
-  
+
   # 全雙工參數
   enable_duplex: false
   interrupt_threshold: 0.7
   response_delay: 0.1
-  
+
   # 設備配置
   device: "cuda"
   fp16: true
@@ -189,14 +180,14 @@ audio:
     semantic_layer: 0
     sample_rate: 16000
     hop_length: 320
-  
+
   # Whisper 配置
   whisper:
     n_mels: 80
     n_fft: 400
     hop_length: 160
     normalize: true
-  
+
   # VAD 配置
   vad:
     threshold: 0.5

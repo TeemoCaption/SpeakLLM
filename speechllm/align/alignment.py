@@ -14,6 +14,7 @@ import json
 import re
 import jieba
 from pypinyin import pinyin, lazy_pinyin, Style
+import opencc
 from dtw import dtw
 import warnings
 
@@ -216,13 +217,13 @@ class WhisperAligner:
 
 class ChineseTextProcessor:
     """
-    繁體中文文字處理器
-    負責分詞、拼音轉換等（保持繁體中文）
+    中文文字處理器
+    負責繁簡轉換、分詞、拼音轉換等
     """
     
     def __init__(
         self,
-        convert_traditional: bool = False,  # 保持繁體中文，不轉換
+        convert_traditional: bool = True,  # 是否進行繁簡轉換
         use_tone: bool = True,  # 是否使用聲調
         segment_method: str = "jieba"  # 分詞方法：jieba, pkuseg
     ):
@@ -230,8 +231,11 @@ class ChineseTextProcessor:
         self.use_tone = use_tone
         self.segment_method = segment_method
         
-        # 不使用繁簡轉換器，保持繁體中文
-        self.converter = None
+        # 初始化繁簡轉換器
+        if convert_traditional:
+            self.converter = opencc.OpenCC('s2t')  # 簡體轉繁體
+        else:
+            self.converter = None
         
         # 初始化分詞器
         if segment_method == "jieba":
@@ -245,8 +249,10 @@ class ChineseTextProcessor:
                 self.segment_method = "jieba"
     
     def normalize_text(self, text: str) -> str:
-        """繁體中文文字正規化"""
-        # 保持繁體中文，不進行繁簡轉換
+        """中文文字正規化"""
+        # 繁簡轉換處理
+        if self.converter:
+            text = self.converter.convert(text)
         
         # 移除多餘空白和標點符號的處理
         text = re.sub(r'\s+', '', text)  # 移除所有空白
@@ -322,8 +328,8 @@ class ChineseTextProcessor:
 
 class ChineseWhisperAligner:
     """
-    基於 Whisper 的繁體中文語音-文字對齊器
-    支援音節級、字級和詞級對齊
+    基於 Whisper 的中文語音-文字對齊器
+    支援音節級、字級和詞級對齊，支援多種中文口音
     """
     
     def __init__(
