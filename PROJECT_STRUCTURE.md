@@ -23,8 +23,7 @@ SpeechLLM/
 │   │   └── interleaving.py           # 交錯序列生成
 │   ├── data/                          # 資料處理
 │   │   ├── __init__.py
-│   │   ├── dataset.py                # 基礎資料集
-│   │   └── chinese_dataset.py        # 中文資料集處理
+│   │   └── dataset.py                # 資料集處理（含繁體中文支援）
 │   ├── training/                      # 訓練相關
 │   │   ├── __init__.py
 │   │   ├── trainer.py                # 三階段訓練器
@@ -35,20 +34,14 @@ SpeechLLM/
 │       └── engine.py                 # 推理引擎（含串流和全雙工）
 ├── scripts/                           # 執行腳本
 │   ├── __init__.py
-│   ├── train.py                      # 通用訓練腳本
-│   ├── train_chinese.py              # 中文專用訓練腳本
+│   ├── train.py                      # 訓練腳本（含繁體中文支援）
 │   ├── inference.py                  # 推理腳本
-│   └── prepare_chinese_data.py       # 中文資料準備腳本
+│   └── prepare_data.py               # 資料準備腳本（含繁體中文支援）
 ├── configs/                           # 配置文件
 │   ├── __init__.py
 │   └── default_config.yaml           # 預設配置（含中文優化）
-├── examples/                          # 示例和教程
-│   ├── chinese_training_example.py   # 中文訓練示例
-│   ├── data/                         # 示例資料
-│   └── outputs/                      # 示例輸出
-├── docs/                             # 文檔
-│   ├── CHINESE_GUIDE.md              # 中文使用指南
-│   └── API_REFERENCE.md              # API 參考（待創建）
+├── examples/                          # 示例和教程（空目錄）
+├── docs/                             # 文檔（空目錄）
 ├── tests/                            # 測試文件（待創建）
 ├── requirements.txt                   # Python 依賴
 ├── README.md                         # 專案說明
@@ -114,54 +107,46 @@ SpeechLLM/
 
 ### 3. 中文對齊系統 (`speechllm/align/`)
 
-#### `chinese_alignment.py` - 中文對齊
-- **功能**：中文語音-文字精確對齊
+#### `alignment.py` - 語音-文字對齊
+- **功能**：語音-文字精確對齊（含繁體中文支援）
 - **特色**：
-  - 拼音音節級對齊
+  - 拼音音節級對齊（繁體中文）
   - Whisper 時間戳提取
   - DTW 動態時間規劃
-  - 繁簡轉換支援
+  - 繁體中文文字處理
 
-#### `chinese_interleaving.py` - 中文交錯生成
-- **功能**：生成中文語音-文字交錯序列
+#### `interleaving.py` - 交錯序列生成
+- **功能**：生成語音-文字交錯序列（含繁體中文支援）
 - **特色**：
   - 音節級交錯標註
   - 4 層 RVQ 對齊策略
   - 支援多種對齊單位
 
-#### `chinese_text_normalizer.py` - 文字正規化
-- **功能**：中文文字預處理和正規化
-- **特色**：
-  - 數字正規化（一千二 → 1200）
-  - 量詞統一化
-  - 多口音處理
-  - 英文詞彙保留
-
 ### 4. 資料處理 (`speechllm/data/`)
 
-#### `chinese_dataset.py` - 中文資料集
-- **功能**：處理中文語音資料集
+#### `dataset.py` - 資料集處理
+- **功能**：處理語音資料集（含繁體中文支援）
 - **支援資料集**：
   - AISHELL-1/2/4
   - WenetSpeech
-  - Common Voice zh-CN/zh-TW
+  - Common Voice zh-TW/zh-HK
   - THCHS-30
   - MagicData
 
 ### 5. 訓練系統 (`speechllm/training/`)
 
 #### `trainer.py` - 三階段訓練器
-- **Stage A**：中文輸入對齊 + KL 蒸餾
-- **Stage B**：中文語音生成訓練
+- **Stage A**：繁體中文輸入對齊 + KL 蒸餾
+- **Stage B**：繁體中文語音生成訓練
 - **Stage C**：四種模式聯合訓練
-- **中文優化**：
+- **繁體中文優化**：
   - 階層式 RVQ 損失權重
   - 多口音混合訓練
   - 只對 `<assistant>` 段計算 loss
 
 #### `loss.py` - 損失函數
 - **多任務損失**：文字 + RVQ + 對齊 + KL
-- **中文優化**：L1 語義層權重更高
+- **繁體中文優化**：L1 語義層權重更高
 
 #### `optimizer.py` - 優化策略
 - **功能**：差異化學習率和調度策略
@@ -179,16 +164,16 @@ SpeechLLM/
 
 ## 🚀 執行腳本功能
 
-### `scripts/train_chinese.py` - 中文訓練
-- **功能**：專門針對中文的訓練腳本
+### `scripts/train.py` - 訓練腳本
+- **功能**：模型訓練（含繁體中文支援）
 - **特色**：
-  - 中文組件初始化
+  - 繁體中文組件初始化
   - 三階段訓練流程
-  - 中文資料集載入
+  - 繁體中文資料集載入
   - 訓練監控和保存
 
-### `scripts/prepare_chinese_data.py` - 資料準備
-- **功能**：中文資料集下載和預處理
+### `scripts/prepare_data.py` - 資料準備
+- **功能**：語音資料集下載和預處理（含繁體中文支援）
 - **支援操作**：
   - 資料集下載指南
   - 格式轉換和處理
@@ -267,12 +252,12 @@ pip install -r requirements.txt
 
 ### 2. 資料準備
 ```bash
-python scripts/prepare_chinese_data.py --action all
+python scripts/prepare_data.py --action all
 ```
 
 ### 3. 模型訓練
 ```bash
-python scripts/train_chinese.py --config configs/default_config.yaml
+python scripts/train.py --config configs/default_config.yaml
 ```
 
 ### 4. 模型推理
@@ -281,8 +266,8 @@ python scripts/inference.py --model_path ./outputs/final_model --mode interactiv
 ```
 
 ### 5. 自定義開發
-- 參考 `examples/chinese_training_example.py`
-- 閱讀 `docs/CHINESE_GUIDE.md`
+- 參考 README.md 中的繁體中文使用指南
+- 查看各模組的詳細文檔
 - 根據需求修改配置和代碼
 
-這個專案結構設計確保了代碼的清晰性、可維護性和擴展性，特別針對中文語音對話場景進行了全面優化。
+這個專案結構設計確保了代碼的清晰性、可維護性和擴展性，特別針對繁體中文語音對話場景進行了全面優化。
