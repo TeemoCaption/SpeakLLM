@@ -19,11 +19,8 @@ SpeechLLM/
 │   │   └── vocab_manager.py          # 詞彙表管理（含中文特殊 token）
 │   ├── align/                         # 對齊和交錯
 │   │   ├── __init__.py
-│   │   ├── alignment.py              # 基礎對齊功能
-│   │   ├── interleaving.py           # 基礎交錯生成
-│   │   ├── chinese_alignment.py      # 中文語音-文字對齊
-│   │   ├── chinese_interleaving.py   # 中文交錯序列生成
-│   │   └── chinese_text_normalizer.py # 中文文字正規化
+│   │   ├── alignment.py              # 語音-文字對齊（含繁體中文支援）
+│   │   └── interleaving.py           # 交錯序列生成
 │   ├── data/                          # 資料處理
 │   │   ├── __init__.py
 │   │   ├── dataset.py                # 基礎資料集
