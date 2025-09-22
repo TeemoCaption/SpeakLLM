@@ -85,8 +85,8 @@ training:
 # 資料配置
 data:
   # 資料集路徑（由 prepare_data.py --action mixed 產生）
-  train_data_file: "./data/train_chinese.json"
-  eval_data_file: "./data/dev_chinese.json"
+  train_data_file: "./datasets/train_chinese.json"
+  eval_data_file: "./datasets/dev_chinese.json"
 
   # 資料處理參數
   max_text_length: 512
@@ -124,17 +124,30 @@ data:
   # 請將 data_dir 改為您實際下載並解壓的路徑
   chinese_datasets:
     - type: "CommonVoice"
-      data_dir: "/path/to/your/common_voice/zh-TW" # 繁體中文（台灣）
+      data_dir: "/path/to/your/common_voice/zh-TW"  # 繁體中文（台灣）
       language: "zh-TW"
       splits: ["train", "dev", "test"]
       accent: "zh-TW"
+    # 新增 TTS 資料集：
+    - type: "AISHELL-3"
+      data_dir: "/path/to/your/AISHELL-3"  # 請修改為實際路徑
+      splits: ["train"]  # TTS 一般只用訓練集
+      accent: "zh-CN"
+    - type: "BZNSYP"
+      data_dir: "/path/to/your/BZNSYP"  # Baker/CSMSC 資料集
+      splits: ["train"]
+      accent: "zh-CN"
+    - type: "ESD"
+      data_dir: "/path/to/your/ESD-zh"  # Emotion Speech Dataset 中文部分
+      splits: ["train"]
+      accent: "zh-CN"
 
-  # 模式權重
+  # 模式權重（增加 TIAO 比重以支援 TTS 資料集）
   mode_weights:
-    TITO: 0.3
-    AITO: 0.3
-    TIAO: 0.2
-    AIAO: 0.2
+    TITO: 0.25  # 文字對話
+    AITO: 0.25  # 語音識別
+    TIAO: 0.35  # 文字轉語音（TTS）
+    AIAO: 0.15  # 語音對話
 
   # 快取配置
   cache_audio_tokens: true
