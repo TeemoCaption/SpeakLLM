@@ -1,4 +1,9 @@
 # SpeechLLM 預設配置文件
+# 
+# 使用前請務必：
+# 1. 修改 data.chinese_datasets 中的 data_dir 為實際資料集路徑
+# 2. 執行 scripts/prepare_data.py 生成訓練資料
+# 3. 根據硬體配置調整 batch_size 和相關參數
 
 # 模型配置
 model:
@@ -79,14 +84,14 @@ training:
 
 # 資料配置
 data:
-  # 資料集路徑
+  # 資料集路徑（由 prepare_data.py --action mixed 產生）
   train_data_file: "./data/train_chinese.json"
-  eval_data_file: "./data/eval_chinese.json"
+  eval_data_file: "./data/dev_chinese.json"
   
   # 資料處理參數
   max_text_length: 512
   max_audio_length: 160000  # 10 秒 at 16kHz
-  sample_rate: 16000
+  sample_rate: 16000  # 若使用 24kHz 資料集，請修改為 24000 並調整相關音訊處理參數
   
   # 繁體中文處理配置
   language: "zh-TW"
@@ -115,18 +120,23 @@ data:
     whisper_word_timestamps: true  # 使用 Whisper 詞級時間戳
     alignment_confidence_threshold: 0.7  # 對齊置信度閾值
   
-  # 中文資料集配置
+  # 繁體中文資料集配置
+  # 請將 data_dir 改為您實際下載並解壓的路徑
   chinese_datasets:
     - type: "AISHELL"
-      data_dir: "./datasets/AISHELL-1"
+      data_dir: "/path/to/your/AISHELL-1"  # 請修改為實際路徑，例如："/home/user/data/AISHELL-1"
       splits: ["train", "dev", "test"]
     - type: "CommonVoice"
-      data_dir: "./datasets/CommonVoice/zh-TW"
+      data_dir: "/path/to/your/common_voice/zh-TW"  # 請修改為實際路徑，例如："/home/user/data/common_voice/zh-TW"
       language: "zh-TW"
       splits: ["train", "dev", "test"]
     - type: "WenetSpeech"
-      data_dir: "./datasets/WenetSpeech"
+      data_dir: "/path/to/your/wenetspeech"  # 請修改為實際路徑，例如："/home/user/data/wenetspeech"
       splits: ["train", "dev", "test"]
+    # 新增其他資料集範例（需同時擴充 scripts/prepare_data.py）：
+    # - type: "AISHELL-3"
+    #   data_dir: "/path/to/your/AISHELL-3"
+    #   splits: ["train", "dev", "test"]
   
   # 模式權重
   mode_weights:

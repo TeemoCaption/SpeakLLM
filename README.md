@@ -302,7 +302,27 @@ class CustomAudioCodec(nn.Module):
 - **Common Voice zh-HK**：繁體中文群眾錄音，香港口音
 - **THCHS-30**：清華中文語音資料庫（可適配繁體）
 
-### 資料集使用範例
+### 資料集配置步驟
+
+#### 1. 修改配置檔案
+下載並解壓資料集後，請修改 `configs/default_config.yaml` 中的路徑：
+
+```yaml
+data:
+  chinese_datasets:
+    - type: "AISHELL"
+      data_dir: "/home/user/data/AISHELL-1"  # 修改為實際路徑
+      splits: ["train", "dev", "test"]
+    - type: "CommonVoice"
+      data_dir: "/home/user/data/common_voice/zh-TW"  # 修改為實際路徑
+      language: "zh-TW"
+      splits: ["train", "dev", "test"]
+    - type: "WenetSpeech"
+      data_dir: "/home/user/data/wenetspeech"  # 修改為實際路徑
+      splits: ["train", "dev", "test"]
+```
+
+#### 2. 資料集使用範例
 ```bash
 # 下載和準備 AISHELL-1
 python scripts/prepare_data.py --dataset AISHELL --action prepare
@@ -313,6 +333,11 @@ python scripts/prepare_data.py --action mixed
 # 驗證資料集完整性
 python scripts/prepare_data.py --action validate
 ```
+
+#### 3. 新增自定義資料集
+若要新增 AISHELL-3 等其他資料集：
+1. 在 `configs/default_config.yaml` 中新增配置
+2. 在 `scripts/prepare_data.py` 中新增對應的處理函式
 
 ## 🙏 致謝
 
@@ -355,10 +380,18 @@ python scripts/prepare_data.py --action validate
 # 安裝繁體中文處理依賴
 pip install jieba pypinyin
 
-# 準備繁體中文資料集
-python scripts/prepare_data.py --action all
+# 1. 檢視資料集下載指南
+python scripts/prepare_data.py --action download
 
-# 開始繁體中文訓練
+# 2. 下載並解壓資料集後，修改 configs/default_config.yaml 中的 data_dir 路徑
+
+# 3. 處理各資料集
+python scripts/prepare_data.py --action prepare
+
+# 4. 創建混合訓練資料集
+python scripts/prepare_data.py --action mixed
+
+# 5. 開始繁體中文訓練
 python scripts/train.py --config configs/default_config.yaml
 ```
 
