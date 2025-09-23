@@ -533,6 +533,13 @@ def create_mixed_dataset(config: dict, output_dir: str):
 
     processor = DatasetProcessor()
 
+    # 從配置檔案中獲取檔案路徑對應
+    file_mapping = {
+        "train": data_config.get("train_data_file", "./datasets/train_chinese.json"),
+        "dev": data_config.get("eval_data_file", "./datasets/dev_chinese.json"),
+        "test": os.path.join(output_dir, "test_chinese.json")  # test 通常沒有在配置中指定
+    }
+
     # 為每個分割創建混合資料集
     for split in ["train", "dev", "test"]:
         print(f"\n處理 {split} 分割...")
@@ -549,8 +556,11 @@ def create_mixed_dataset(config: dict, output_dir: str):
             print(f"  跳過 {split}：沒有可用的資料集")
             continue
 
-        # 創建混合資料集
-        output_file = os.path.join(output_dir, f"{split}_chinese.json")
+        # 使用配置檔案中指定的檔案路徑
+        output_file = file_mapping[split]
+        
+        # 確保輸出目錄存在
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
         try:
             mixed_samples = processor.create_mixed_dataset(
@@ -627,21 +637,29 @@ def main():
         choices=["AISHELL", "CommonVoice", "WenetSpeech", "AISHELL-3", "BZNSYP", "ESD"],
         help="指定資料集（僅用於 prepare 動作）",
     )
-    parser.add_argument("--output_dir", type=str, default="./data", help="輸出目錄")
+    parser.add_argument("--output_dir", type=str, default=None, help="輸出目錄（若未指定則使用配置檔案中的路徑）")
 
     args = parser.parse_args()
 
-    # 初始化日誌系統
-    logger = setup_logging(log_dir=os.path.join(args.output_dir, "logs"))
-    
     # 載入配置
-    logger.info(f"載入配置文件: {args.config}")
     config = load_config(args.config)
     data_config = config["data"]
-
+    
+    # 從配置檔案中推導輸出目錄
+    if args.output_dir is None:
+        # 從配置檔案中的 train_data_file 路徑推導輸出目錄
+        train_data_file = data_config.get("train_data_file", "./datasets/train_chinese.json")
+        args.output_dir = os.path.dirname(train_data_file)
+        if not args.output_dir:
+            args.output_dir = "./datasets"
+    
+    # 初始化日誌系統
+    logger = setup_logging(log_dir=os.path.join(args.output_dir, "logs"))
+    logger.info(f"載入配置文件: {args.config}")
+    
     # 創建輸出目錄
     os.makedirs(args.output_dir, exist_ok=True)
-    logger.info(f"輸出目錄: {args.output_dir}")
+    logger.info(f"輸出目錄: {args.output_dir} (從配置檔案推導)")
 
     if args.action in ["download", "all"]:
         print("\n=== 資料集下載指南 ===")
@@ -699,11 +717,18 @@ def main():
     if args.action in ["validate", "all"]:
         print("\n=== 驗證資料集 ===")
 
-        # 驗證混合資料集
-        for split in ["train", "dev", "test"]:
-            data_file = os.path.join(args.output_dir, f"{split}_chinese.json")
+        # 驗證混合資料集 - 使用配置檔案中指定的路徑
+        validation_files = {
+            "train": data_config.get("train_data_file", "./datasets/train_chinese.json"),
+            "dev": data_config.get("eval_data_file", "./datasets/dev_chinese.json"),
+            "test": os.path.join(args.output_dir, "test_chinese.json")
+        }
+        
+        for split, data_file in validation_files.items():
             if os.path.exists(data_file):
                 validate_dataset(data_file)
+            else:
+                print(f"  跳過 {split}：檔案不存在 {data_file}")
 
     print("\n資料集準備完成！")
     print("\n後續步驟:")

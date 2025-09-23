@@ -122,17 +122,17 @@ data:
   # 請將 data_dir 改為您實際下載並解壓的路徑
   chinese_datasets:
     - type: "CommonVoice"
-      data_dir: "d:/承諺/學習/程式/Python/深度學習/語音辨識/SpeakLLM/datasets/common_voice_22/zh-TW"
+      data_dir: "./datasets/common_voice_22/zh-TW"
       language: "zh-TW"
       splits: ["train", "dev", "test"]
       accent: "zh-TW"
     # 新增 TTS 資料集：
     - type: "AISHELL-3"
-      data_dir: "d:/承諺/學習/程式/Python/深度學習/語音辨識/SpeakLLM/datasets/aishell3"
+      data_dir: "./datasets/aishell3"
       splits: ["train"] # TTS 一般只用訓練集
       accent: "zh-CN"
     - type: "ESD"
-      data_dir: "d:/承諺/學習/程式/Python/深度學習/語音辨識/SpeakLLM/datasets/EmotionSpeechDataset"
+      data_dir: "./datasets/EmotionSpeechDataset"
       splits: ["train"]
       accent: "zh-CN"
 
