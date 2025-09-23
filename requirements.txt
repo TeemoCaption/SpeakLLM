@@ -13,7 +13,7 @@ datasets>=2.19.0
 librosa>=0.10.0
 soundfile>=0.12.0
 ffmpeg-python>=0.2.0
-openai-whisper
+openai-whisper>=20231117
 
 # 注意力機制優化
 flash-attn>=2.5.0

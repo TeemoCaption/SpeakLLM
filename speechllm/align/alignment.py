@@ -4,15 +4,17 @@
 支援繁體中文拼音音節級對齊
 """
 
-import torch
 import whisper
+import torch
 import numpy as np
-from typing import Dict, List, Tuple, Optional, Union
-import librosa
+from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
-import json
-import re
+import librosa
+from dtw import dtw
 import jieba
+import re
+
+from ..utils.whisper_compat import load_audio, get_sample_rate
 from pypinyin import pinyin, lazy_pinyin, Style
 import opencc
 from dtw import dtw
@@ -87,7 +89,7 @@ class WhisperAligner:
             segments: 對齊片段列表
         """
         # 載入音訊
-        audio = whisper.load_audio(audio_path)
+        audio = load_audio(audio_path)
         
         # 轉錄並獲取時間戳
         result = self.model.transcribe(
@@ -143,8 +145,8 @@ class WhisperAligner:
             segments: 強制對齊的片段
         """
         # 載入音訊
-        audio = whisper.load_audio(audio_path)
-        audio_duration = len(audio) / whisper.audio.SAMPLE_RATE
+        audio = load_audio(audio_path)
+        audio_duration = len(audio) / get_sample_rate()
         
         # 分詞
         tokens = self.tokenizer.encode(reference_text)
@@ -378,7 +380,7 @@ class ChineseWhisperAligner:
             alignment_unit = self.alignment_unit
         
         # 載入音訊
-        audio = whisper.load_audio(audio_path)
+        audio = load_audio(audio_path)
         
         if reference_text is None:
             # 自動轉錄
@@ -491,7 +493,7 @@ class ChineseWhisperAligner:
         )
         
         # 獲取音訊總時長
-        audio_duration = len(audio) / whisper.audio.SAMPLE_RATE
+        audio_duration = len(audio) / get_sample_rate()
         
         # 處理參考文字
         if alignment_unit == "syllable":
