@@ -99,6 +99,14 @@ def create_training_config(config: dict) -> TrainingConfig:
     """創建中文優化的訓練配置"""
     training_config = config["training"]
 
+    learning_rate_value = training_config["learning_rate"]
+    if isinstance(learning_rate_value, str):
+        learning_rate_value = float(learning_rate_value)
+
+    weight_decay_value = training_config["weight_decay"]
+    if isinstance(weight_decay_value, str):
+        weight_decay_value = float(weight_decay_value)
+
     # 創建訓練配置，支援中文優化參數
     train_config = TrainingConfig(
         output_dir=training_config["output_dir"],
@@ -107,8 +115,8 @@ def create_training_config(config: dict) -> TrainingConfig:
         num_epochs=training_config["num_epochs"],
         batch_size=training_config["batch_size"],
         gradient_accumulation_steps=training_config["gradient_accumulation_steps"],
-        learning_rate=training_config["learning_rate"],
-        weight_decay=training_config["weight_decay"],
+        learning_rate=learning_rate_value,
+        weight_decay=weight_decay_value,
         warmup_steps=training_config["warmup_steps"],
         max_grad_norm=training_config["max_grad_norm"],
         stage_a_epochs=training_config["stage_a_epochs"],
