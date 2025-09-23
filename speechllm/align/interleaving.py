@@ -10,7 +10,7 @@ from dataclasses import dataclass
 import librosa
 import torchaudio
 
-from .alignment import AlignmentSegment, WhisperAligner
+from .alignment import AlignmentSegment, ChineseWhisperAligner
 from ..codecs.audio_tokenizer import AudioTokenizer
 from ..codecs.vocab_manager import VocabManager
 
@@ -40,14 +40,14 @@ class InterleavingGenerator:
     def __init__(
         self,
         audio_tokenizer: Optional[AudioTokenizer] = None,
-        aligner: Optional[WhisperAligner] = None,
+        aligner: Optional[ChineseWhisperAligner] = None,
         vocab_manager: Optional[VocabManager] = None,
         num_rvq_layers: int = 4,
         repeat_text_tokens: bool = True
     ):
         # 初始化組件
         self.audio_tokenizer = audio_tokenizer or AudioTokenizer()
-        self.aligner = aligner or WhisperAligner()
+        self.aligner = aligner or ChineseWhisperAligner()
         self.vocab_manager = vocab_manager or VocabManager()
         
         self.num_rvq_layers = num_rvq_layers

@@ -13,7 +13,7 @@ datasets>=2.19.0
 librosa>=0.10.0
 soundfile>=0.12.0
 ffmpeg-python>=0.2.0
-whisper-openai>=20231117
+openai-whisper
 
 # 注意力機制優化
 flash-attn>=2.5.0
@@ -24,46 +24,43 @@ deepspeed>=0.14.0
 lightning>=2.2.0
 
 # 數值計算和科學計算
-numpy>=1.24.0
-scipy>=1.11.0
+numpy
+scipy
 
 # 資料處理和工具
-pandas>=2.0.0
-tqdm>=4.65.0
-wandb>=0.16.0
-tensorboard>=2.15.0
+pandas
+tqdm
+wandb
+tensorboard
 
 # 配置管理
-omegaconf>=2.3.0
-hydra-core>=1.3.0
+omegaconf
+hydra-core
 
 # 音訊編解碼器
-encodec>=0.1.1
-dac>=1.0.0
+encodec
+dac
 
 # 語音相關工具
-wespeaker>=1.0.0
-pyannote.audio>=3.1.0
+pyannote.audio
 
 # 開發工具
-pytest>=7.4.0
-black>=23.0.0
-isort>=5.12.0
-flake8>=6.0.0
+pytest
+black
+isort
+flake8
 
 # 中文處理工具
-jieba>=0.42.1
-pypinyin>=0.50.0
-opencc-python-reimplemented>=0.1.7
-pkuseg>=0.0.25
+jieba
+pypinyin
+opencc-python-reimplemented
 
 # 對齊工具
-dtw-python>=1.3.0
-montreal-forced-alignment>=2.2.17
+dtw-python
 
 # 其他實用工具
-matplotlib>=3.7.0
-seaborn>=0.12.0
-pillow>=10.0.0
-requests>=2.31.0
-pyyaml>=6.0.0
+matplotlib
+seaborn
+pillow
+requests
+pyyaml

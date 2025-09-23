@@ -10,6 +10,8 @@ import sys
 import argparse
 import yaml
 import json
+import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
 import pandas as pd
@@ -21,6 +23,35 @@ import numpy as np
 sys.path.append(str(Path(__file__).parent.parent))
 
 from speechllm.align.alignment import ChineseTextProcessor
+
+
+def setup_logging(log_dir: str = "logs", log_level: str = "INFO"):
+    """設置日誌配置"""
+    # 創建日誌目錄
+    os.makedirs(log_dir, exist_ok=True)
+    
+    # 生成日誌檔案名稱（包含時間戳）
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = os.path.join(log_dir, f"prepare_data_{timestamp}.log")
+    
+    # 配置日誌格式
+    log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    date_format = "%Y-%m-%d %H:%M:%S"
+    
+    # 設置日誌配置
+    logging.basicConfig(
+        level=getattr(logging, log_level.upper()),
+        format=log_format,
+        datefmt=date_format,
+        handlers=[
+            logging.FileHandler(log_file, encoding='utf-8'),  # 檔案輸出
+            logging.StreamHandler(sys.stdout)  # 控制台輸出
+        ]
+    )
+    
+    logger = logging.getLogger(__name__)
+    logger.info(f"日誌系統已初始化，日誌檔案：{log_file}")
+    return logger
 
 
 @dataclass
@@ -45,6 +76,7 @@ class DatasetProcessor:
         self.text_processor = text_processor or ChineseTextProcessor(
             convert_traditional=False
         )
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def process_common_voice(
         self,
@@ -54,6 +86,7 @@ class DatasetProcessor:
         mode: str = "AITO",
     ):
         """處理 Common Voice 繁體中文資料集"""
+        self.logger.info(f"開始處理 Common Voice 資料集：{data_dir}, split={split}, language={language}, mode={mode}")
         samples = []
 
         # Common Voice 資料結構
@@ -61,12 +94,14 @@ class DatasetProcessor:
         audio_dir = os.path.join(data_dir, "clips")
 
         if not os.path.exists(tsv_file):
-            print(f"找不到 {tsv_file}")
+            self.logger.error(f"找不到 TSV 檔案：{tsv_file}")
             return samples
 
         # 讀取 TSV 文件
         try:
+            self.logger.info(f"讀取 TSV 檔案：{tsv_file}")
             df = pd.read_csv(tsv_file, sep="\t")
+            self.logger.info(f"成功讀取 {len(df)} 筆資料")
 
             for idx, row in df.iterrows():
                 audio_file = row["path"]
@@ -74,6 +109,7 @@ class DatasetProcessor:
 
                 audio_path = os.path.join(audio_dir, audio_file)
                 if not os.path.exists(audio_path):
+                    self.logger.warning(f"音訊檔案不存在，跳過：{audio_path}")
                     continue
 
                 # 正規化文字
@@ -97,13 +133,20 @@ class DatasetProcessor:
                     },
                 )
                 samples.append(sample)
+                
+                # 每處理 1000 筆資料記錄一次進度
+                if (idx + 1) % 1000 == 0:
+                    self.logger.info(f"已處理 {idx + 1} 筆資料，成功建立 {len(samples)} 個樣本")
+                    
         except Exception as e:
-            print(f"處理 Common Voice 資料時出錯: {e}")
+            self.logger.error(f"處理 Common Voice 資料時出錯: {e}")
 
+        self.logger.info(f"Common Voice 處理完成，共建立 {len(samples)} 個樣本")
         return samples
 
     def process_aishell3(self, data_dir: str, split: str = "train", mode: str = "TIAO"):
         """處理 AISHELL-3 TTS 資料集"""
+        self.logger.info(f"開始處理 AISHELL-3 資料集：{data_dir}, split={split}, mode={mode}")
         samples = []
 
         # AISHELL-3 資料結構: train/SSB*/SSB*_*.wav 和 train/label_train-set.txt
@@ -111,7 +154,7 @@ class DatasetProcessor:
         label_file = os.path.join(data_dir, split, f"label_{split}-set.txt")
 
         if not os.path.exists(label_file):
-            print(f"  警告: 找不到標籤文件 {label_file}")
+            self.logger.error(f"找不到標籤檔案：{label_file}")
             return samples
 
         # 讀取標籤文件
@@ -426,12 +469,13 @@ def prepare_dataset(
     language: str = "zh-TW",
 ):
     """準備單個資料集"""
-    print(f"\n準備 {dataset_type} 資料集...")
+    logger = logging.getLogger(__name__)
+    logger.info(f"開始準備 {dataset_type} 資料集，資料目錄: {data_dir}")
 
     processor = DatasetProcessor()
 
     for split in splits:
-        print(f"處理 {split} 分割...")
+        logger.info(f"處理 {dataset_type} 的 {split} 分割")
 
         try:
             if dataset_type == "AISHELL":
@@ -587,13 +631,17 @@ def main():
 
     args = parser.parse_args()
 
+    # 初始化日誌系統
+    logger = setup_logging(log_dir=os.path.join(args.output_dir, "logs"))
+    
     # 載入配置
-    print(f"載入配置文件: {args.config}")
+    logger.info(f"載入配置文件: {args.config}")
     config = load_config(args.config)
     data_config = config["data"]
 
     # 創建輸出目錄
     os.makedirs(args.output_dir, exist_ok=True)
+    logger.info(f"輸出目錄: {args.output_dir}")
 
     if args.action in ["download", "all"]:
         print("\n=== 資料集下載指南 ===")

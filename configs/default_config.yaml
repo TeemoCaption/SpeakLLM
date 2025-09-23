@@ -43,7 +43,7 @@ training:
   seed: 42
 
   # 訓練參數
-  num_epochs: 10
+  num_epochs: 15
   batch_size: 4
   gradient_accumulation_steps: 4
   learning_rate: 1e-4
@@ -97,8 +97,6 @@ data:
   language: "zh" # 通用中文，支援多口音
   convert_traditional: true # 啟用繁簡轉換處理
   use_tone: true # 使用聲調
-  alignment_unit: "syllable" # syllable, character, word
-  segment_method: "jieba" # jieba, pkuseg
 
   # 中文文字正規化
   text_normalization:
@@ -124,30 +122,26 @@ data:
   # 請將 data_dir 改為您實際下載並解壓的路徑
   chinese_datasets:
     - type: "CommonVoice"
-      data_dir: "/path/to/your/common_voice/zh-TW"  # 繁體中文（台灣）
+      data_dir: "d:/承諺/學習/程式/Python/深度學習/語音辨識/SpeakLLM/datasets/common_voice_22/zh-TW"
       language: "zh-TW"
       splits: ["train", "dev", "test"]
       accent: "zh-TW"
     # 新增 TTS 資料集：
     - type: "AISHELL-3"
-      data_dir: "/path/to/your/AISHELL-3"  # 請修改為實際路徑
-      splits: ["train"]  # TTS 一般只用訓練集
-      accent: "zh-CN"
-    - type: "BZNSYP"
-      data_dir: "/path/to/your/BZNSYP"  # Baker/CSMSC 資料集
-      splits: ["train"]
+      data_dir: "d:/承諺/學習/程式/Python/深度學習/語音辨識/SpeakLLM/datasets/aishell3"
+      splits: ["train"] # TTS 一般只用訓練集
       accent: "zh-CN"
     - type: "ESD"
-      data_dir: "/path/to/your/ESD-zh"  # Emotion Speech Dataset 中文部分
+      data_dir: "d:/承諺/學習/程式/Python/深度學習/語音辨識/SpeakLLM/datasets/EmotionSpeechDataset"
       splits: ["train"]
       accent: "zh-CN"
 
   # 模式權重（增加 TIAO 比重以支援 TTS 資料集）
   mode_weights:
-    TITO: 0.25  # 文字對話
-    AITO: 0.25  # 語音識別
-    TIAO: 0.35  # 文字轉語音（TTS）
-    AIAO: 0.15  # 語音對話
+    TITO: 0.25 # 文字對話
+    AITO: 0.25 # 語音識別
+    TIAO: 0.35 # 文字轉語音（TTS）
+    AIAO: 0.15 # 語音對話
 
   # 快取配置
   cache_audio_tokens: true

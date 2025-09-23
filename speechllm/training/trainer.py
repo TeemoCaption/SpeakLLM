@@ -12,6 +12,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, LinearLR
 import os
 import json
 import time
+import logging
 from typing import Dict, List, Optional, Union, Tuple
 from dataclasses import dataclass, asdict
 import wandb
@@ -97,8 +98,12 @@ class SpeechLLMTrainer:
         self.eval_dataset = eval_dataset
         self.config = config or TrainingConfig()
         
+        # 設置日誌
+        self.logger = logging.getLogger(self.__class__.__name__)
+        
         # 設置設備
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.logger.info(f"使用設備: {self.device}")
         self.model.to(self.device)
         
         # 創建輸出目錄
