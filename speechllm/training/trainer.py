@@ -117,6 +117,9 @@ class SpeechLLMTrainer:
             logger=self.logger,
         )
         self.logger.info(f"使用設備: {device_info}")
+        if self.config.fp16 and self.device.type != "cuda":
+            self.logger.warning("fp16 training requested but CUDA device not available. Disabling fp16.")
+            self.config.fp16 = False
         self.model.to(self.device)
         
         # 創建輸出目錄
@@ -431,6 +434,12 @@ class SpeechLLMTrainer:
                 component = getattr(self.model, component_name)
                 for param in component.parameters():
                     param.requires_grad = False
+
+                if component_name == "llm" and getattr(self.model.config, "use_gradient_checkpointing", False):
+                    llm_module = getattr(self.model, "llm", None)
+                    if llm_module and hasattr(llm_module, "gradient_checkpointing_disable"):
+                        llm_module.gradient_checkpointing_disable()
+
                 print(f"凍結組件: {component_name}")
     
     def _unfreeze_components(self, components: List[str]):
@@ -440,6 +449,12 @@ class SpeechLLMTrainer:
                 component = getattr(self.model, component_name)
                 for param in component.parameters():
                     param.requires_grad = True
+
+                if component_name == "llm" and getattr(self.model.config, "use_gradient_checkpointing", False):
+                    llm_module = getattr(self.model, "llm", None)
+                    if llm_module and hasattr(llm_module, "gradient_checkpointing_enable"):
+                        llm_module.gradient_checkpointing_enable()
+
                 print(f"解凍組件: {component_name}")
     
     def _evaluate(self, stage: str) -> Dict[str, float]:
