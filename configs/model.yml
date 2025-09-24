@@ -1,4 +1,4 @@
-﻿# Core model configuration tying together Whisper, Qwen, and Voila tokenizer
+# Core model configuration tying together Whisper, Qwen, and Voila tokenizer
 whisper:
   checkpoint: openai/whisper-medium
   encoder_dim: 1024

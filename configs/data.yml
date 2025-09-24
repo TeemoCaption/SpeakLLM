@@ -1,4 +1,4 @@
-﻿# Primary multilingual speech datasets
+# Primary multilingual speech datasets
 mix:
   - name: librispeech
     split: train-clean-100

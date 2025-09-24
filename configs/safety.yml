@@ -1,4 +1,4 @@
-﻿# Safety policy templates for speech assistant
+# Safety policy templates for speech assistant
 refusal_triggers:
   - violence
   - self_harm

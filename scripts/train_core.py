@@ -2,7 +2,7 @@
 import json
 import math
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
@@ -15,7 +15,6 @@ try:
 except ImportError:
     yaml = None
 
-from datasets import load_dataset
 
 # Local imports will be available once supporting modules are filled in.
 # Placeholder typing hints keep the skeleton self-documented.
@@ -105,6 +104,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", type=str, required=True, help="Path to stage training config YAML")
     parser.add_argument("--model", type=str, required=True, help="Path to model config YAML")
     parser.add_argument("--data", type=str, required=True, help="Path to data mix YAML")
+    parser.add_argument("--stage", type=str, default=None, help="Stage key when using consolidated train YAML")
     parser.add_argument("--output_dir", type=str, required=True, help="Where to store checkpoints and logs")
     parser.add_argument("--log_with", nargs="*", default=None, help="Additional loggers for Accelerate")
     parser.add_argument("--resume_from", type=str, default=None, help="Optional checkpoint to resume")
@@ -114,7 +114,17 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    stage_cfg = load_yaml(Path(args.config))
+    raw_stage_cfg = load_yaml(Path(args.config))
+    if "stages" in raw_stage_cfg:
+        if not args.stage:
+            raise ValueError("--stage must be provided when config contains multiple stages")
+        if args.stage not in raw_stage_cfg["stages"]:
+            raise KeyError(f"Unknown stage '{args.stage}' in {args.config}")
+        stage_cfg = raw_stage_cfg["stages"][args.stage]
+        stage_name = args.stage
+    else:
+        stage_cfg = raw_stage_cfg
+        stage_name = args.stage or Path(args.config).stem
     model_cfg = load_yaml(Path(args.model))
     data_cfg = load_yaml(Path(args.data))
 
@@ -142,7 +152,8 @@ def main() -> None:
 
     accelerator = build_accelerator(train_cfg, output_dir)
     if args.log_with:
-        accelerator.init_trackers(args.wandb_project, config={"stage_config": stage_cfg, "model_config": model_cfg})
+        tracker_cfg = {"stage": stage_name, "stage_config": stage_cfg, "model_config": model_cfg}
+        accelerator.init_trackers(args.wandb_project, config=tracker_cfg)
 
     accelerator.print("Loading datasets...")
     try:
