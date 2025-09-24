@@ -48,7 +48,8 @@ class SpeechLLMDataset(Dataset):
         sample_rate: int = 16000,
         mode_weights: Optional[Dict[str, float]] = None,
         cache_audio_tokens: bool = True,
-        cache_dir: Optional[str] = None
+        cache_dir: Optional[str] = None,
+        dynamic_padding: bool = True
     ):
         self.data_file = data_file
         self.max_text_length = max_text_length
@@ -56,6 +57,7 @@ class SpeechLLMDataset(Dataset):
         self.sample_rate = sample_rate
         self.cache_audio_tokens = cache_audio_tokens
         self.cache_dir = cache_dir
+        self.dynamic_padding = dynamic_padding
         
         # 初始化組件
         self.audio_tokenizer = audio_tokenizer or AudioTokenizer()
@@ -248,16 +250,20 @@ class SpeechLLMDataset(Dataset):
         labels = [-100] * input_length + token_ids[input_length:]
         labels = labels[:len(token_ids)]  # 確保長度一致
         
-        # 填充到最大長度
-        padding_length = self.max_text_length - len(token_ids)
-        if padding_length > 0:
-            pad_token_id = self.vocab_manager.extended_tokenizer.pad_token_id or 0
-            token_ids.extend([pad_token_id] * padding_length)
-            labels.extend([-100] * padding_length)
-        
+
+        padding_length = 0
+        if not self.dynamic_padding:
+            padding_length = self.max_text_length - len(token_ids)
+            if padding_length > 0:
+                pad_token_id = self.vocab_manager.extended_tokenizer.pad_token_id or 0
+                token_ids.extend([pad_token_id] * padding_length)
+                labels.extend([-100] * padding_length)
+
         # 創建注意力遮罩
-        attention_mask = [1] * (len(token_ids) - padding_length) + [0] * padding_length
-        
+        attention_mask = [1] * len(token_ids)
+        if not self.dynamic_padding and padding_length > 0:
+            attention_mask = [1] * (len(token_ids) - padding_length) + [0] * padding_length
+
         return {
             "input_ids": torch.tensor(token_ids, dtype=torch.long),
             "attention_mask": torch.tensor(attention_mask, dtype=torch.long),
@@ -282,60 +288,73 @@ class SpeechLLMCollator:
         self.pad_to_multiple_of = pad_to_multiple_of
         self.pad_token_id = vocab_manager.extended_tokenizer.pad_token_id or 0
     
+
     def __call__(self, batch: List[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
         """整理批次資料"""
-        # 獲取最大長度
-        max_length = max(len(item["input_ids"]) for item in batch)
-        
-        # 調整到指定倍數
-        if self.pad_to_multiple_of:
-            max_length = ((max_length + self.pad_to_multiple_of - 1) 
-                         // self.pad_to_multiple_of * self.pad_to_multiple_of)
-        
-        # 填充所有序列
-        input_ids = []
-        attention_masks = []
-        labels = []
-        modes = []
-        sample_ids = []
-        
+        actual_lengths: List[int] = []
         for item in batch:
-            # 填充 input_ids
-            current_length = len(item["input_ids"])
-            if current_length < max_length:
-                padding = torch.full((max_length - current_length,), 
-                                   self.pad_token_id, dtype=torch.long)
-                padded_input_ids = torch.cat([item["input_ids"], padding])
+            mask = item["attention_mask"]
+            if isinstance(mask, torch.Tensor):
+                length = int(mask.sum().item())
             else:
-                padded_input_ids = item["input_ids"][:max_length]
-            
-            # 填充 attention_mask
-            if current_length < max_length:
-                padding = torch.zeros(max_length - current_length, dtype=torch.long)
-                padded_attention_mask = torch.cat([item["attention_mask"], padding])
+                length = len(item["input_ids"])
+            actual_lengths.append(length)
+
+        max_length = max(actual_lengths) if actual_lengths else 0
+
+        if self.pad_to_multiple_of and max_length > 0:
+            max_length = (
+                (max_length + self.pad_to_multiple_of - 1)
+                // self.pad_to_multiple_of
+                * self.pad_to_multiple_of
+            )
+
+        input_ids: List[torch.Tensor] = []
+        attention_masks: List[torch.Tensor] = []
+        labels: List[torch.Tensor] = []
+        modes: List[str] = []
+        sample_ids: List[str] = []
+
+        for idx, item in enumerate(batch):
+            current_length = actual_lengths[idx]
+            trimmed_input = item["input_ids"][:current_length]
+            trimmed_mask = item["attention_mask"][:current_length]
+            trimmed_labels = item["labels"][:current_length]
+
+            if max_length > 0 and current_length < max_length:
+                pad_size = max_length - current_length
+                input_pad = torch.full((pad_size,), self.pad_token_id, dtype=torch.long)
+                mask_pad = torch.zeros(pad_size, dtype=torch.long)
+                label_pad = torch.full((pad_size,), -100, dtype=torch.long)
+
+                padded_input = torch.cat([trimmed_input, input_pad])
+                padded_mask = torch.cat([trimmed_mask, mask_pad])
+                padded_labels = torch.cat([trimmed_labels, label_pad])
+            elif max_length > 0:
+                padded_input = trimmed_input[:max_length]
+                padded_mask = trimmed_mask[:max_length]
+                padded_labels = trimmed_labels[:max_length]
             else:
-                padded_attention_mask = item["attention_mask"][:max_length]
-            
-            # 填充 labels
-            if current_length < max_length:
-                padding = torch.full((max_length - current_length,), -100, dtype=torch.long)
-                padded_labels = torch.cat([item["labels"], padding])
-            else:
-                padded_labels = item["labels"][:max_length]
-            
-            input_ids.append(padded_input_ids)
-            attention_masks.append(padded_attention_mask)
+                padded_input = trimmed_input
+                padded_mask = trimmed_mask
+                padded_labels = trimmed_labels
+
+            input_ids.append(padded_input)
+            attention_masks.append(padded_mask)
             labels.append(padded_labels)
             modes.append(item["mode"])
             sample_ids.append(item["sample_id"])
-        
-        return {
-            "input_ids": torch.stack(input_ids),
-            "attention_mask": torch.stack(attention_masks),
-            "labels": torch.stack(labels),
+
+        batch_dict: Dict[str, torch.Tensor] = {
+            "input_ids": torch.stack(input_ids) if input_ids else torch.empty(0, dtype=torch.long),
+            "attention_mask": torch.stack(attention_masks) if attention_masks else torch.empty(0, dtype=torch.long),
+            "labels": torch.stack(labels) if labels else torch.empty(0, dtype=torch.long),
             "modes": modes,
-            "sample_ids": sample_ids
+            "sample_ids": sample_ids,
+            "sequence_lengths": torch.tensor(actual_lengths, dtype=torch.long),
         }
+        return batch_dict
+
 
 
 def create_dataloader(

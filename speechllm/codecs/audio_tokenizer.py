@@ -3,6 +3,7 @@
 整合 RVQ codec 和詞彙表管理，提供音訊到 token 的轉換
 """
 
+import logging
 import torch
 import torchaudio
 import numpy as np
@@ -12,6 +13,7 @@ from pathlib import Path
 
 from .rvq_codec import RVQCodec, RVQConfig
 from .vocab_manager import VocabManager
+from ..utils.device_utils import resolve_device_with_info
 
 
 class AudioTokenizer:
@@ -25,26 +27,33 @@ class AudioTokenizer:
         rvq_config: Optional[RVQConfig] = None,
         vocab_manager: Optional[VocabManager] = None,
         codec_model_path: Optional[str] = None,
-        device: str = "cuda" if torch.cuda.is_available() else "cpu"
+        device: Optional[str] = None
     ):
-        self.device = device
-        
+
+        self.logger = logging.getLogger(self.__class__.__name__)
+        resolved_device, device_info = resolve_device_with_info(device, logger=self.logger)
+        self.device = resolved_device
+
+        if self.logger.isEnabledFor(logging.INFO):
+            self.logger.info(f"Audio tokenizer device: {device_info}")
+
         # 初始化 RVQ codec
         if rvq_config is None:
             rvq_config = RVQConfig()
         self.rvq_config = rvq_config
-        
-        self.codec = RVQCodec(rvq_config).to(device)
-        
+
+        self.codec = RVQCodec(rvq_config).to(self.device)
+
         # 載入預訓練的 codec 模型
         if codec_model_path and Path(codec_model_path).exists():
-            self.codec.load_state_dict(torch.load(codec_model_path, map_location=device))
+            self.codec.load_state_dict(torch.load(codec_model_path, map_location=self.device))
             self.codec.eval()
-        
+
         # 初始化詞彙表管理器
         if vocab_manager is None:
             vocab_manager = VocabManager()
         self.vocab_manager = vocab_manager
+
         
     def load_audio(self, audio_path: str, target_sr: Optional[int] = None) -> torch.Tensor:
         """

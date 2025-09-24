@@ -20,6 +20,7 @@ from tqdm import tqdm
 import numpy as np
 
 from ..models.speechllm import SpeechLLM, SpeechLLMConfig
+from ..utils.device_utils import resolve_device_with_info
 from ..data.dataset import SpeechLLMDataset, create_dataloader
 from .loss import SpeechLLMLoss
 from .optimizer import create_optimizer_and_scheduler
@@ -65,6 +66,7 @@ class TrainingConfig:
     # 硬體配置
     fp16: bool = True
     bf16: bool = False
+    device: Optional[str] = None
     dataloader_num_workers: int = 4
     dataloader_pin_memory: bool = True
     
@@ -101,9 +103,20 @@ class SpeechLLMTrainer:
         # 設置日誌
         self.logger = logging.getLogger(self.__class__.__name__)
         
+        self.vocab_manager = train_dataset.vocab_manager
+        self.tokenizer = self.vocab_manager.extended_tokenizer
+        self.eval_sample_lookup = (
+            {sample.sample_id: sample for sample in self.eval_dataset.samples}
+            if self.eval_dataset and hasattr(self.eval_dataset, 'samples')
+            else {}
+        )
+        
         # 設置設備
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.logger.info(f"使用設備: {self.device}")
+        self.device, device_info = resolve_device_with_info(
+            preferred=self.config.device,
+            logger=self.logger,
+        )
+        self.logger.info(f"使用設備: {device_info}")
         self.model.to(self.device)
         
         # 創建輸出目錄
@@ -144,7 +157,7 @@ class SpeechLLMTrainer:
         
         # 混合精度訓練
         self.scaler = None
-        if self.config.fp16:
+        if self.config.fp16 and self.device.type == "cuda":
             self.scaler = torch.cuda.amp.GradScaler()
         
         # 訓練狀態
@@ -212,7 +225,19 @@ class SpeechLLMTrainer:
             
             if self.eval_dataset:
                 self._evaluate(stage="A")
-    
+
+        if self.eval_dataset:
+            metrics = self._compute_stage_a_asr_metrics()
+            if metrics:
+                cer = metrics.get("cer", 0.0)
+                wer = metrics.get("wer", 0.0)
+                self.logger.info(f"Stage A ASR - CER: {cer:.4f}, WER: {wer:.4f}")
+                self._log_metrics({
+                    "eval/cer_stage_A": cer,
+                    "eval/wer_stage_A": wer,
+                    "eval/global_step": self.global_step,
+                })
+
     def _train_stage_b(self):
         """Stage B: 中文語音生成階段"""
         print("Stage B: 中文語音生成訓練（AISHELL-3/BZNSYP/ESD）")
@@ -460,6 +485,161 @@ class SpeechLLMTrainer:
         
         return metrics
     
+
+
+    def _compute_stage_a_asr_metrics(self, max_batches: int = 5) -> Dict[str, float]:
+        """計算 Stage A 的 CER/WER 指標"""
+        if not self.eval_dataset:
+            return {}
+        if not hasattr(self.model, "generate"):
+            self.logger.warning("模型不支援 generate，略過 Stage A ASR 評估。")
+            return {}
+
+        was_training = self.model.training
+        self.model.eval()
+
+        predictions: List[str] = []
+        references: List[str] = []
+        batches_processed = 0
+
+        with torch.no_grad():
+            for batch in self.eval_dataloader:
+                indices = [i for i, mode in enumerate(batch["modes"]) if mode == "AITO"]
+                if not indices:
+                    continue
+
+                for idx in indices:
+                    input_ids = batch["input_ids"][idx].to(self.device)
+                    attention_mask = batch["attention_mask"][idx].to(self.device)
+                    labels = batch["labels"][idx]
+                    sample_id = batch["sample_ids"][idx]
+
+                    target_start = int((labels == -100).sum().item())
+                    prompt_length = max(target_start, 1)
+
+                    prompt_ids = input_ids[:prompt_length].unsqueeze(0)
+                    prompt_mask = attention_mask[:prompt_length].unsqueeze(0)
+
+                    generated = self.model.generate(
+                        input_ids=prompt_ids,
+                        attention_mask=prompt_mask,
+                        max_new_tokens=128,
+                        pad_token_id=self.vocab_manager.extended_tokenizer.pad_token_id,
+                        eos_token_id=self.vocab_manager.extended_tokenizer.eos_token_id,
+                    )
+
+                    if isinstance(generated, dict) and "sequences" in generated:
+                        generated_sequence = generated["sequences"][0]
+                    else:
+                        generated_sequence = generated[0]
+
+                    predicted_text = self._decode_generated_text(
+                        generated_sequence.detach().cpu(),
+                        prompt_length=prompt_ids.shape[1],
+                    )
+
+                    reference_sample = self.eval_sample_lookup.get(sample_id)
+                    reference_text = reference_sample.output_text if reference_sample else ""
+
+                    predictions.append(predicted_text)
+                    references.append(reference_text or "")
+
+                batches_processed += 1
+                if batches_processed >= max_batches:
+                    break
+
+        if was_training:
+            self.model.train()
+
+        if not references:
+            self.logger.warning("Stage A ASR 評估資料不足，無法計算 CER/WER。")
+            return {}
+
+        return self._calculate_error_rates(references, predictions)
+
+    def _decode_generated_text(self, sequence: torch.Tensor, prompt_length: int) -> str:
+        """從生成序列解碼出文字"""
+        token_ids = sequence.tolist()
+        tokens = self.tokenizer.convert_ids_to_tokens(token_ids)
+
+        search_start = min(len(tokens), max(prompt_length - 1, 0))
+        try:
+            start_index = tokens.index("<TEXT>", search_start) + 1
+        except ValueError:
+            try:
+                start_index = tokens.index("<TEXT>") + 1
+            except ValueError:
+                start_index = prompt_length
+
+        end_index = len(tokens)
+        if "<eos>" in tokens[start_index:]:
+            end_index = start_index + tokens[start_index:].index("<eos>")
+
+        text_tokens = [tok for tok in tokens[start_index:end_index] if not tok.startswith("<")]
+        if not text_tokens:
+            return ""
+        decoded = self.tokenizer.convert_tokens_to_string(text_tokens)
+        return decoded.strip()
+
+    @staticmethod
+    def _split_into_words(self, text: str) -> List[str]:
+        stripped = text.strip()
+        if not stripped:
+            return []
+        if " " in stripped:
+            return [word for word in stripped.split(" ") if word]
+        return list(stripped)
+
+    @staticmethod
+    def _edit_distance(self, reference: List[str], hypothesis: List[str]) -> int:
+        m, n = len(reference), len(hypothesis)
+        if m == 0:
+            return n
+        if n == 0:
+            return m
+
+        dp = [[0] * (n + 1) for _ in range(m + 1)]
+        for i in range(m + 1):
+            dp[i][0] = i
+        for j in range(n + 1):
+            dp[0][j] = j
+
+        for i in range(1, m + 1):
+            for j in range(1, n + 1):
+                cost = 0 if reference[i - 1] == hypothesis[j - 1] else 1
+                dp[i][j] = min(
+                    dp[i - 1][j] + 1,
+                    dp[i][j - 1] + 1,
+                    dp[i - 1][j - 1] + cost,
+                )
+        return dp[m][n]
+
+    def _calculate_error_rates(self, references: List[str], predictions: List[str]) -> Dict[str, float]:
+        """計算 CER 與 WER"""
+        total_char_errors = 0
+        total_chars = 0
+        total_word_errors = 0
+        total_words = 0
+
+        for ref, pred in zip(references, predictions):
+            ref_norm = (ref or "").strip()
+            pred_norm = (pred or "").strip()
+
+            ref_chars = list(ref_norm.replace(" ", ""))
+            pred_chars = list(pred_norm.replace(" ", ""))
+            total_char_errors += self._edit_distance(ref_chars, pred_chars)
+            total_chars += max(len(ref_chars), 1)
+
+            ref_words = self._split_into_words(ref_norm)
+            pred_words = self._split_into_words(pred_norm)
+            total_word_errors += self._edit_distance(ref_words, pred_words)
+            total_words += max(len(ref_words), 1)
+
+        cer = total_char_errors / total_chars if total_chars else 0.0
+        wer = total_word_errors / total_words if total_words else 0.0
+
+        return {"cer": cer, "wer": wer}
+
     def _log_metrics(self, metrics: Dict[str, float]):
         """記錄指標"""
         if self.config.use_wandb:

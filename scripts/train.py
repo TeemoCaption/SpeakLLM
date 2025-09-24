@@ -132,6 +132,7 @@ def create_training_config(config: dict) -> TrainingConfig:
         save_total_limit=training_config["save_total_limit"],
         fp16=training_config["fp16"],
         bf16=training_config["bf16"],
+        device=training_config.get("device"),
         dataloader_num_workers=training_config["dataloader_num_workers"],
         dataloader_pin_memory=training_config["dataloader_pin_memory"],
         use_wandb=training_config["use_wandb"],
