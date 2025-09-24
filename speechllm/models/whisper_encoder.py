@@ -10,6 +10,7 @@ from typing import Dict, List, Tuple, Optional
 import whisper
 from transformers import WhisperModel, WhisperConfig
 import numpy as np
+from speechllm.utils.whisper_compat import get_mel_filters
 
 
 class WhisperAudioEncoder(nn.Module):
@@ -190,10 +191,9 @@ class AudioFeatureExtractor(nn.Module):
         self.sample_rate = sample_rate
         self.normalize = normalize
         
-        # Mel 濾波器組
-        self.mel_filters = torch.from_numpy(
-            whisper.audio.mel_filters(sample_rate, n_fft, n_mels)
-        ).float()
+        # Mel 濾波器組 (支援多種 Whisper 版本)
+        mel_filters = get_mel_filters(sample_rate=sample_rate, n_mels=n_mels, n_fft=n_fft)
+        self.mel_filters = torch.from_numpy(mel_filters).float()
         
     def forward(self, audio: torch.Tensor) -> torch.Tensor:
         """
