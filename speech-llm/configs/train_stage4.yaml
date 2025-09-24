@@ -1,0 +1,68 @@
+﻿# Stage 4: Joint NTP (text + audio tokens)
+seed: 45
+precision: bf16
+train_steps: 180000
+save_interval: 4000
+log_interval: 50
+validation_interval: 1000
+resume_from: checkpoints/stage2/last
+
+use_deepspeed: true
+accelerate_config: configs/deepspeed_zero3_bf16.json
+
+optimizer:
+  lr_adapter: 0.0001
+  lr_audio_head: 0.0001
+  lr_text_head: 0.0001
+  lr_qwen_lora: 0.00002
+  lr_whisper_unfrozen: 0.00002
+  warmup_steps: 1500
+  scheduler: cosine
+  min_lr_ratio: 0.05
+
+batching:
+  max_tokens_per_device: 3000
+  gradient_accumulation: 16
+  dataloader_num_workers: 8
+  max_context: 4096
+  bucket_by_length: true
+
+freeze:
+  whisper:
+    trainable_layers: [18, 23]
+  qwen:
+    use_lora: true
+    frozen_blocks: []
+
+loss:
+  objectives:
+    - name: text_ce
+      weight: 1.0
+    - name: audio_codebook_ce
+      weight: 1.0
+    - name: emotion_cls
+      weight: 0.1
+
+mixing:
+  datasets:
+    - name: spoken_dialog
+      weight: 0.4
+    - name: asr
+      weight: 0.2
+    - name: tts
+      weight: 0.2
+    - name: text_only
+      weight: 0.2
+  language_upweight:
+    zh-TW: 1.5
+    zh: 1.3
+    ja: 1.2
+    ko: 1.2
+    de: 1.1
+    fr: 1.1
+
+validation_metrics:
+  - perplexity
+  - codebook_accuracy
+  - mcd
+  - wer

@@ -1,0 +1,20 @@
+﻿# Safety policy templates for speech assistant
+refusal_triggers:
+  - violence
+  - self_harm
+  - hate_speech
+  - sexual_content
+  - illegal_instruction
+  - medical_diagnosis
+
+audit_prompts:
+  - Ensure assistant follows corporate compliance guidelines.
+  - Verify the response avoids disallowed content and escalates when needed.
+
+fallback_messages:
+  - I am sorry, but I cannot help with that request.
+  - This topic is outside my capabilities. Could we discuss something else?
+
+logging:
+  enabled: true
+  redact_personal_data: true

@@ -1,0 +1,129 @@
+﻿# Primary multilingual speech datasets
+mix:
+  - name: librispeech
+    split: train-clean-100
+    lang: en
+    hours: 100
+    weight: 0.15
+    type: asr
+  - name: gigaspeech
+    subset: medium
+    lang: en
+    hours: 250
+    weight: 0.10
+    type: asr
+  - name: common_voice_17_0
+    subset: zh-TW
+    lang: zh-TW
+    hours: 120
+    weight: 0.12
+    type: asr
+  - name: wenetspeech
+    subset: train_u
+    lang: zh
+    hours: 1000
+    weight: 0.18
+    type: asr
+  - name: aishell_1
+    lang: zh
+    hours: 150
+    weight: 0.05
+    type: asr
+  - name: jsut
+    lang: ja
+    hours: 10
+    weight: 0.05
+    type: asr
+  - name: jvs
+    lang: ja
+    hours: 20
+    weight: 0.03
+    type: asr
+  - name: kspon
+    lang: ko
+    hours: 24
+    weight: 0.05
+    type: asr
+  - name: zeroth_korean
+    lang: ko
+    hours: 51
+    weight: 0.03
+    type: asr
+  - name: mls_de
+    lang: de
+    hours: 400
+    weight: 0.06
+    type: asr
+  - name: mls_fr
+    lang: fr
+    hours: 300
+    weight: 0.05
+    type: asr
+  - name: voxpopuli
+    subset: asr
+    lang: multi
+    hours: 400
+    weight: 0.08
+    type: asr
+  - name: iemocap
+    lang: en
+    hours: 12
+    weight: 0.03
+    type: emo
+  - name: esd
+    lang: multi
+    hours: 30
+    weight: 0.02
+    type: emo
+
+synthetic_tts:
+  - name: dailydialog_tts
+    lang: multi
+    items: 200000
+    weight: 0.05
+    provider: coqui-tts
+  - name: empatheticdialogues_tts
+    lang: multi
+    items: 150000
+    weight: 0.03
+    provider: edge-tts
+
+noise:
+  - name: musan
+    type: noise
+  - name: rirs_noises
+    type: reverb
+  - name: dns_challenge
+    type: noise
+
+validation_sets:
+  - name: librispeech
+    split: dev-clean
+    lang: en
+  - name: wenetspeech
+    split: dev
+    lang: zh
+  - name: jsut
+    split: test
+    lang: ja
+  - name: kspon
+    split: dev
+    lang: ko
+  - name: mls_de
+    split: dev
+    lang: de
+  - name: mls_fr
+    split: dev
+    lang: fr
+
+manifest_schema:
+  path: str
+  text: str
+  lang: str
+  speaker_id: str
+  duration: float
+  dataset: str
+  split: str
+  type: str
+  emotion: optional[str]
+  sample_rate: optional[int]

@@ -1,0 +1,54 @@
+﻿# Stage 6: Semantic distillation and safety alignment
+seed: 47
+precision: bf16
+train_steps: 40000
+save_interval: 4000
+log_interval: 50
+validation_interval: 1000
+resume_from: checkpoints/stage5/last
+
+use_deepspeed: true
+accelerate_config: configs/deepspeed_zero3_bf16.json
+
+optimizer:
+  lr_adapter: 0.00005
+  lr_audio_head: 0.00005
+  lr_text_head: 0.00005
+  lr_qwen_lora: 0.00001
+  warmup_steps: 1000
+  scheduler: cosine
+  min_lr_ratio: 0.05
+
+loss:
+  objectives:
+    - name: text_ce
+      weight: 0.7
+    - name: audio_codebook_ce
+      weight: 0.2
+    - name: distill_kl
+      weight: 0.2
+    - name: safety_sft
+      weight: 0.3
+
+teacher:
+  model_id: Qwen/Qwen2.5-72B-Instruct
+  temperature: 1.0
+  kl_target: 0.05
+  max_tokens: 4096
+
+safety:
+  template_manifest: data/manifests/safety_templates.jsonl
+  refusal_label: <SAFETY_REFUSAL>
+  audit_ruleset: configs/safety_rules.yaml
+
+batching:
+  max_tokens_per_device: 2600
+  gradient_accumulation: 16
+  dataloader_num_workers: 8
+  max_context: 4096
+
+validation_metrics:
+  - perplexity
+  - safety_precision
+  - safety_recall
+  - refusal_false_positive

@@ -1,66 +1,53 @@
-# 核心深度學習框架
-torch>=2.4.0
-torchvision>=0.19.0
-torchaudio>=2.4.0
+﻿# core deep learning stack
+--extra-index-url https://download.pytorch.org/whl/cu121
+torch==2.3.1+cu121
+torchvision==0.18.1+cu121
+torchaudio==2.3.1
 
-# Transformers 和相關套件
-transformers>=4.40.0
-tokenizers>=0.19.0
-accelerate>=0.30.0
-datasets>=2.19.0
+# transformers ecosystem
+transformers==4.43.3
+tokenizers==0.15.2
+accelerate==0.33.0
+datasets==2.20.0
+peft==0.11.1
+bitsandbytes==0.43.1
 
-# 音訊處理
-librosa>=0.10.0
-soundfile>=0.12.0
-ffmpeg-python>=0.2.0
-openai-whisper>=20231117
+# attention + optimization
+flash-attn==2.5.6
+xformers==0.0.27.post2
 
-# 注意力機制優化
-flash-attn>=2.5.0
-xformers>=0.0.26
+# distributed training
+deepspeed==0.14.4
+lightning==2.4.0
 
-# 分散式訓練
-deepspeed>=0.14.0
-lightning>=2.2.0
+# audio processing
+librosa==0.10.2
+soundfile==0.12.1
+ffmpeg-python==0.2.0
+jiwer==3.0.4
 
-# 數值計算和科學計算
-numpy
-scipy
+# tokenizer / speech utilities
+sentencepiece==0.2.0
+encodec==0.1.1
 
-# 資料處理和工具
-pandas
-tqdm
-wandb
-tensorboard
+# logging and evaluation
+tqdm==4.66.4
+wandb==0.17.7
+tensorboard==2.17.1
 
-# 配置管理
-omegaconf
-hydra-core
+# scientific stack
+numpy==1.26.4
+scipy==1.13.1
+pandas==2.2.2
 
-# 音訊編解碼器
-encodec
-dac
+# general utilities
+requests==2.32.3
+pyyaml==6.0.1
+einops==0.8.0
+sounddevice==0.4.6
 
-# 語音相關工具
-pyannote.audio
-
-# 開發工具
-pytest
-black
-isort
-flake8
-
-# 中文處理工具
-jieba
-pypinyin
-opencc-python-reimplemented
-
-# 對齊工具
-dtw-python
-
-# 其他實用工具
-matplotlib
-seaborn
-pillow
-requests
-pyyaml
+# quality and testing
+pytest==8.3.3
+black==24.8.0
+isort==5.13.2
+flake8==7.1.0

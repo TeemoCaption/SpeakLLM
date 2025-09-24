@@ -1,0 +1,61 @@
+﻿# Stage 5: Full-duplex streaming and interruption modeling
+seed: 46
+precision: bf16
+train_steps: 80000
+save_interval: 4000
+log_interval: 50
+validation_interval: 1000
+resume_from: checkpoints/stage4/last
+
+use_deepspeed: true
+accelerate_config: configs/deepspeed_zero3_bf16.json
+
+optimizer:
+  lr_adapter: 0.0001
+  lr_audio_head: 0.0001
+  lr_text_head: 0.0001
+  lr_interrupt_head: 0.0001
+  lr_qwen_lora: 0.00002
+  lr_whisper_unfrozen: 0.00002
+  warmup_steps: 1000
+  scheduler: cosine
+  min_lr_ratio: 0.05
+
+batching:
+  max_tokens_per_device: 2800
+  gradient_accumulation: 16
+  dataloader_num_workers: 8
+  max_context: 4096
+  bucket_by_length: true
+
+additional_heads:
+  interruptibility:
+    type: binary
+    loss_weight: 0.3
+
+latency_training:
+  random_future_mask_ms: [120, 320]
+  chunk_tokens: 64
+  kd_latency_weight: 0.2
+
+mixing:
+  datasets:
+    - name: spoken_dialog
+      weight: 0.35
+    - name: asr
+      weight: 0.15
+    - name: tts
+      weight: 0.15
+    - name: duplex_synthetic
+      weight: 0.2
+    - name: text_only
+      weight: 0.15
+  duplex_generation:
+    barge_in_probability: 0.4
+    noise_overlay_probability: 0.2
+
+validation_metrics:
+  - wer
+  - latency_ms
+  - barge_in_success
+  - false_interrupt_rate

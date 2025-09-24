@@ -1,0 +1,102 @@
+﻿# Core model configuration tying together Whisper, Qwen, and Voila tokenizer
+whisper:
+  checkpoint: openai/whisper-medium
+  encoder_dim: 1024
+  freeze_layers: 18
+  sample_rate: 16000
+  mel_bins: 80
+  window_ms: 25
+  hop_ms: 10
+  chunk_size_s: 30
+
+adapter:
+  type: proj_mlp
+  input_dim: 1024
+  hidden_dim: 2048
+  output_dim: 4096
+  layers: 2
+  activation: silu
+  dropout: 0.1
+  use_rms_norm: true
+  rotary_positional_encoding: true
+
+qwen:
+  checkpoint: Qwen/Qwen2-7B
+  tokenizer_path: tokenizer/extended
+  max_position_embeddings: 4096
+  rope_theta: 1000000
+  gradient_checkpointing: true
+  flash_attention: true
+  dropout: 0.0
+  use_lora: false
+  lora:
+    r: 32
+    alpha: 16
+    dropout: 0.05
+    target_modules:
+      - q_proj
+      - k_proj
+      - v_proj
+      - o_proj
+
+voila:
+  repo_id: Voicelab/voila-tokenizer
+  codebooks: 4
+  codes_per_book: 8192
+  frames_per_code: 4
+  chunk_stride_frames: 160
+  chunk_size_frames: 320
+
+heads:
+  text:
+    type: tied_linear
+    loss_weight: 0.6
+  audio:
+    type: linear
+    vocab_sizes: [8192, 8192, 8192, 8192]
+    loss_weight: 0.35
+  emotion:
+    type: classification
+    num_labels: 8
+    loss_weight: 0.05
+
+special_tokens:
+  control:
+    - <AUDIO_IN>
+    - <AUDIO_IN_END>
+    - <ASSISTANT_AUDIO>
+    - </ASSISTANT_AUDIO>
+    - <ASSISTANT_TEXT>
+    - </ASSISTANT_TEXT>
+    - <LANG:zh-TW>
+    - <LANG:en>
+    - <LANG:ja>
+    - <LANG:ko>
+    - <LANG:de>
+    - <LANG:fr>
+    - <EMO:neutral>
+    - <EMO:warm>
+    - <EMO:happy>
+    - <EMO:sad>
+    - <EMO:angry>
+    - <RATE:fast>
+    - <RATE:slow>
+    - <RATE:normal>
+  audio_prefix:
+    - <L1_>
+    - <L2_>
+    - <L3_>
+    - <L4_>
+
+loss_weights:
+  text: 0.6
+  audio: 0.35
+  emotion: 0.05
+  ctc: 0.3
+
+optimization:
+  optimizer: adamw_8bit
+  betas: [0.9, 0.95]
+  weight_decay: 0.01
+  grad_clip: 1.0
+  precision: bf16

@@ -1,0 +1,69 @@
+﻿# Stage 1: ASR alignment (Whisper encoder -> Qwen text head)
+seed: 42
+precision: bf16
+train_steps: 100000
+save_interval: 2000
+log_interval: 50
+validation_interval: 1000
+resume_from: null
+
+mixed_precision: bf16
+use_deepspeed: true
+accelerate_config: configs/deepspeed_zero3_bf16.json
+
+optimizer:
+  lr_adapter: 0.001
+  lr_text_head: 0.001
+  lr_qwen_unfrozen: 0.00005
+  lr_whisper_unfrozen: 0.00001
+  warmup_steps: 1000
+  scheduler: cosine
+  min_lr_ratio: 0.1
+
+batching:
+  max_tokens_per_device: 3200
+  gradient_accumulation: 12
+  dataloader_num_workers: 8
+  max_context: 2048
+  bucket_by_length: true
+
+freeze:
+  whisper:
+    trainable_layers: []
+  qwen:
+    frozen_blocks: [0, 27]
+
+loss:
+  objectives:
+    - name: text_ce
+      weight: 1.0
+    - name: ctc
+      weight: 0.3
+
+ctc_head:
+  enabled: true
+  hidden_dim: 512
+  dropout: 0.1
+
+spec_augment:
+  enabled: true
+  time_mask_param: 20
+  time_mask_count: 2
+  freq_mask_param: 15
+  freq_mask_count: 2
+
+noise_augmentation:
+  snr_db: [5, 25]
+  probability: 0.3
+  reverb_probability: 0.15
+
+curriculum:
+  freeze_schedule:
+    - step: 20000
+      unfreeze_qwen_blocks: [24, 27]
+    - step: 60000
+      unfreeze_qwen_blocks: [20, 23]
+
+validation_metrics:
+  - wer
+  - cer

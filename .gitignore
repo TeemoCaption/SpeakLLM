@@ -1,1 +1,7 @@
 datasets/
+checkpoints/
+data/raw/
+data/processed/
+notebooks/
+.venv/
+
