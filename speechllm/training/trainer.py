@@ -183,22 +183,12 @@ class SpeechLLMTrainer:
         print(f"Stage A (輸入對齊): {self.config.stage_a_epochs} epochs")
         print(f"Stage B (語音輸出): {self.config.stage_b_epochs} epochs")
         print(f"Stage C (多任務聯訓): {self.config.stage_c_epochs} epochs")
-        
-        # Stage A: 輸入對齊/蒸餾
-        print("
-=== Stage A: 輸入對齊/蒸餾 ===")
+        print("\n=== Stage A: 輸入對齊/蒸餾 ===")
         self._train_stage_a()
-        
-        # Stage B: 語音輸出器
-        print("
-=== Stage B: 語音輸出器 ===")
+        print("\n=== Stage B: 語音輸出器 ===")
         self._train_stage_b()
-        
-        # Stage C: 多任務聯訓
-        print("
-=== Stage C: 多任務聯訓 ===")
+        print("\n=== Stage C: 多任務聯訓 ===")
         self._train_stage_c()
-        
         print("訓練完成！")
         
         # 保存最終模型
@@ -206,7 +196,6 @@ class SpeechLLMTrainer:
         
         if self.config.use_wandb:
             wandb.finish()
-    
     def _train_stage_a(self):
         """Stage A: 中文輸入對齊/蒸餾階段"""
         print("Stage A: 中文語音理解訓練（AISHELL/THCHS/Common Voice）")
