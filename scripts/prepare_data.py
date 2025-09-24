@@ -17,7 +17,6 @@ from typing import Dict, List
 import pandas as pd
 from dataclasses import dataclass
 import random
-import numpy as np
 
 # 添加專案根目錄到路徑
 sys.path.append(str(Path(__file__).parent.parent))
@@ -308,12 +307,8 @@ class DatasetProcessor:
         self,
         dataset_configs: List[Dict],
         output_file: str,
-        mode_distribution: Dict[str, float] = None,
     ):
-        """創建混合資料集"""
-        if mode_distribution is None:
-            mode_distribution = {"TITO": 0.3, "AITO": 0.3, "TIAO": 0.2, "AIAO": 0.2}
-
+        """創建混合資料集，保持資料集原生模式"""
         all_samples = []
 
         # 處理每個資料集
@@ -341,14 +336,6 @@ class DatasetProcessor:
 
             all_samples.extend(samples)
             print(f"載入 {dataset_type} {split}: {len(samples)} 個樣本")
-
-        # 隨機分配模式
-        for sample in all_samples:
-            # 根據分佈隨機選擇模式
-            mode = np.random.choice(
-                list(mode_distribution.keys()), p=list(mode_distribution.values())
-            )
-            sample.mode = mode
 
         # 打亂樣本順序
         random.shuffle(all_samples)
@@ -529,8 +516,6 @@ def create_mixed_dataset(config: dict, output_dir: str):
 
     data_config = config["data"]
     datasets = data_config.get("chinese_datasets", [])
-    mode_weights = data_config.get("mode_weights", {})
-
     processor = DatasetProcessor()
 
     # 從配置檔案中獲取檔案路徑對應
@@ -566,7 +551,6 @@ def create_mixed_dataset(config: dict, output_dir: str):
             mixed_samples = processor.create_mixed_dataset(
                 dataset_configs=dataset_configs,
                 output_file=output_file,
-                mode_distribution=mode_weights,
             )
             print(f"  {split}: {len(mixed_samples)} 個樣本 -> {output_file}")
 
