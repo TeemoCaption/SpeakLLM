@@ -185,15 +185,18 @@ class SpeechLLMTrainer:
         print(f"Stage C (多任務聯訓): {self.config.stage_c_epochs} epochs")
         
         # Stage A: 輸入對齊/蒸餾
-        print("\n=== Stage A: 輸入對齊/蒸餾 ===")
+        print("
+=== Stage A: 輸入對齊/蒸餾 ===")
         self._train_stage_a()
         
         # Stage B: 語音輸出器
-        print("\n=== Stage B: 語音輸出器 ===")
+        print("
+=== Stage B: 語音輸出器 ===")
         self._train_stage_b()
         
         # Stage C: 多任務聯訓
-        print("\n=== Stage C: 多任務聯訓 ===")
+        print("
+=== Stage C: 多任務聯訓 ===")
         self._train_stage_c()
         
         print("訓練完成！")
@@ -498,6 +501,13 @@ class SpeechLLMTrainer:
         
         with torch.no_grad():
             for batch in tqdm(self.eval_dataloader, desc=f"Evaluating Stage {stage}"):
+                modes = batch.get("modes")
+                if not modes or modes[0] is None:
+                    self.logger.warning("Skipping eval batch because modes list is empty or None")
+                    continue
+
+                current_mode = modes[0]
+
                 batch = {k: v.to(self.device) if isinstance(v, torch.Tensor) else v 
                         for k, v in batch.items()}
                 
@@ -770,3 +780,5 @@ if __name__ == "__main__":
     
     # 注意：實際使用時需要真實的資料集
     print("訓練器測試完成（需要真實資料集才能運行完整測試）")
+
+

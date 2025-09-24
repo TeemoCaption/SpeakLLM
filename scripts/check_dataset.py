@@ -3,9 +3,22 @@
 import argparse
 import itertools
 from pathlib import Path
+import sys
 
 import torch
 import yaml
+
+def _resolve_project_root(start: Path, package: str = "speechllm") -> Path:
+    current = start
+    candidates = [current] + list(current.parents)
+    for candidate in candidates:
+        if (candidate / package).exists():
+            return candidate
+    raise RuntimeError(f"Unable to locate project root containing '{package}' starting from {start}")
+
+PROJECT_ROOT = _resolve_project_root(Path(__file__).resolve().parent)
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 try:
     from speechllm.data.dataset import SpeechLLMDataset, create_dataloader
