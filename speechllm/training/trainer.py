@@ -308,11 +308,41 @@ class SpeechLLMTrainer:
                 continue
             
             # 移動到設備
-            filtered_batch = {k: v.to(self.device) if isinstance(v, torch.Tensor) else v 
+            filtered_batch = {k: v.to(self.device) if isinstance(v, torch.Tensor) else v
                             for k, v in filtered_batch.items()}
-            
+
+            # 過濾掉沒有有效標籤的樣本（避免 loss 出現 NaN）
+            if 'labels' in filtered_batch and isinstance(filtered_batch['labels'], torch.Tensor):
+                labels = filtered_batch["labels"]
+                if labels.dim() > 1:
+                    valid_mask = (labels != -100).any(dim=1)
+                else:
+                    valid_mask = labels != -100
+
+                if not valid_mask.any():
+                    continue
+
+                if not torch.all(valid_mask):
+                    valid_indices = valid_mask.nonzero(as_tuple=False).view(-1).tolist()
+                    filtered_batch = {
+                        key: value[valid_indices] if isinstance(value, torch.Tensor) else
+                        ([value[i] for i in valid_indices] if isinstance(value, list) else value)
+                        for key, value in filtered_batch.items()
+                    }
+
+            modes = filtered_batch.get("modes")
+            if not modes or modes[0] is None:
+                self.logger.warning("Skipping batch because modes list is empty or None")
+                continue
+
+            current_mode = modes[0]
+
             # 前向傳播
-            loss = self._forward_step(filtered_batch, stage)
+            loss = self._forward_step(filtered_batch, stage, current_mode)
+            if torch.isnan(loss):
+                self.logger.warning('Encountered NaN loss; skipping this batch.')
+                continue
+
             
             # 反向傳播
             loss = loss / self.config.gradient_accumulation_steps
@@ -363,7 +393,7 @@ class SpeechLLMTrainer:
         
         return avg_loss
     
-    def _forward_step(self, batch: Dict, stage: str) -> torch.Tensor:
+    def _forward_step(self, batch: Dict, stage: str, current_mode: str) -> torch.Tensor:
         """前向傳播步驟"""
         # 根據階段調整損失計算
         if stage == "A":
@@ -372,7 +402,7 @@ class SpeechLLMTrainer:
                 input_ids=batch["input_ids"],
                 attention_mask=batch["attention_mask"],
                 labels=batch["labels"],
-                mode=batch["modes"][0]  # 假設批次中所有樣本模式相同
+                mode=current_mode  # 假設批次中所有樣本模式相同
             )
             
             # 只計算文字損失和對齊損失
@@ -384,7 +414,7 @@ class SpeechLLMTrainer:
                 input_ids=batch["input_ids"],
                 attention_mask=batch["attention_mask"],
                 labels=batch["labels"],
-                mode=batch["modes"][0]
+                mode=current_mode
             )
             
             # 重點關注 RVQ 損失
@@ -396,7 +426,7 @@ class SpeechLLMTrainer:
                 input_ids=batch["input_ids"],
                 attention_mask=batch["attention_mask"],
                 labels=batch["labels"],
-                mode=batch["modes"][0]
+                mode=current_mode
             )
             
             # 使用完整損失
@@ -475,7 +505,7 @@ class SpeechLLMTrainer:
                     input_ids=batch["input_ids"],
                     attention_mask=batch["attention_mask"],
                     labels=batch["labels"],
-                    mode=batch["modes"][0]
+                    mode=current_mode
                 )
                 
                 loss = outputs["loss"]

@@ -33,7 +33,7 @@ model:
 
   # 訓練配置
   use_gradient_checkpointing: true
-  mixed_precision: true
+  mixed_precision: false
 
 # 訓練配置
 training:
@@ -72,7 +72,7 @@ training:
   save_total_limit: 3
 
   # 硬體配置
-  fp16: true
+  fp16: false
   bf16: false
   dataloader_num_workers: 4
   dataloader_pin_memory: true
@@ -174,7 +174,7 @@ inference:
 
   # 設備配置
   device: "cuda"
-  fp16: true
+  fp16: false
 
 # 音訊處理配置
 audio:
