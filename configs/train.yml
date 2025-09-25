@@ -1,12 +1,12 @@
-﻿stages:
+stages:
   stage1:
-    description: Stage 1 - ASR alignment (Whisper encoder -> Qwen text head)
+    description: Stage 1 - Tiny ASR alignment (Whisper encoder → Qwen text頭)
     seed: 42
     precision: bf16
-    train_steps: 100000
+    train_steps: 16000
     save_interval: 2000
     log_interval: 50
-    validation_interval: 1000
+    validation_interval: 800
     resume_from: null
     mixed_precision: bf16
     use_deepspeed: true
@@ -14,55 +14,69 @@
     optimizer:
       lr_adapter: 0.001
       lr_text_head: 0.001
-      lr_qwen_unfrozen: 0.00005
-      lr_whisper_unfrozen: 0.00001
-      warmup_steps: 1000
+      lr_qwen_lora: 0.00005
+      warmup_steps: 800
       scheduler: cosine
-      min_lr_ratio: 0.1
+      min_lr_ratio: 0.2
     batching:
-      max_tokens_per_device: 3200
+      max_tokens_per_device: 3072
       gradient_accumulation: 12
       dataloader_num_workers: 8
       max_context: 2048
       bucket_by_length: true
+    train_manifests:
+      - manifest: data/manifests/tiny_asr.jsonl
+        weight: 1.0
+        type: asr
+    eval_manifests:
+      - manifest: data/manifests/tiny_asr_dev.jsonl
+        weight: 1.0
+        type: asr
+    data_fields:
+      text: text
+      prompt: prompt
+      response: response
+      audio_codes: audio_codes
+      mel_path: mel_path
+      chunk_spans: chunk_spans
+      interrupt_label: interrupt_label
     freeze:
       whisper:
         trainable_layers: []
       qwen:
+        use_lora: true
         frozen_blocks: [0, 27]
     loss:
       objectives:
         - name: text_ce
           weight: 1.0
         - name: ctc
-          weight: 0.3
+          weight: 0.2
     ctc_head:
       enabled: true
       hidden_dim: 512
       dropout: 0.1
     spec_augment:
       enabled: true
-      time_mask_param: 20
+      time_mask_param: 18
       time_mask_count: 2
-      freq_mask_param: 15
+      freq_mask_param: 12
       freq_mask_count: 2
     noise_augmentation:
-      snr_db: [5, 25]
-      probability: 0.3
+      snr_db: [8, 20]
+      probability: 0.35
       reverb_probability: 0.15
     curriculum:
       freeze_schedule:
-        - step: 20000
+        - step: 8000
           unfreeze_qwen_blocks: [24, 27]
-        - step: 60000
-          unfreeze_qwen_blocks: [20, 23]
     validation_metrics: [wer, cer]
 
   stage2:
-    description: Stage 2 - Speech to Voila token alignment
+    description: Stage 2 - Tiny speech token建模（文字→音訊 RVQ）
     seed: 43
     precision: bf16
-    train_steps: 100000
+    train_steps: 32000
     save_interval: 2000
     log_interval: 50
     validation_interval: 1000
@@ -71,52 +85,67 @@
     use_deepspeed: true
     accelerate_config: configs/deepspeed.json
     optimizer:
-      lr_adapter: 0.0005
+      lr_adapter: 0.001
       lr_audio_head: 0.001
-      lr_qwen_unfrozen: 0.00005
-      lr_whisper_unfrozen: 0.00001
+      lr_qwen_lora: 0.00005
       warmup_steps: 1000
       scheduler: cosine
-      min_lr_ratio: 0.1
+      min_lr_ratio: 0.2
     batching:
-      max_tokens_per_device: 3200
+      max_tokens_per_device: 3072
       gradient_accumulation: 12
       dataloader_num_workers: 8
       max_context: 2048
       bucket_by_length: true
+    train_manifests:
+      - manifest: data/manifests/tiny_asr.jsonl
+        weight: 0.4
+        type: asr
+      - manifest: data/manifests/tiny_tts.jsonl
+        weight: 0.6
+        type: tts
+      - manifest: data/manifests/tiny_synth_tts.jsonl
+        weight: 1.0
+        type: synth
+    eval_manifests:
+      - manifest: data/manifests/tiny_tts_dev.jsonl
+        weight: 1.0
+        type: tts
     freeze:
       whisper:
-        trainable_layers: [20, 21]
+        trainable_layers: [20]
       qwen:
+        use_lora: true
         frozen_blocks: [0, 27]
-        lora_blocks: [20, 27]
     loss:
       objectives:
         - name: audio_codebook_ce
           weight: 1.0
         - name: distill_kl
-          weight: 0.2
+          weight: 0.1
     w2c_distill:
       teacher_head_dim: 512
       temperature: 1.0
-      loss_scale: 0.2
+      loss_scale: 0.1
     mixing:
       datasets:
         - type: asr
-          weight: 0.7
+          weight: 0.3
         - type: tts
           weight: 0.3
-      shuffle_buffer: 4096
+        - type: synth
+          weight: 0.4
+      shuffle_buffer: 2048
     validation_metrics: [codebook_accuracy, mel_mcd]
 
   stage4:
-    description: Stage 4 - Joint NTP (text + audio tokens)
+    description: Stage 3 - Tiny 聯合生成（文字 + 音訊 token）
     seed: 45
     precision: bf16
-    train_steps: 180000
-    save_interval: 4000
+    train_steps: 52000
+    save_interval: 3000
     log_interval: 50
-    validation_interval: 1000
+    validation_interval: 1200
     resume_from: checkpoints/stage2/last
     use_deepspeed: true
     accelerate_config: configs/deepspeed.json
@@ -125,16 +154,32 @@
       lr_audio_head: 0.0001
       lr_text_head: 0.0001
       lr_qwen_lora: 0.00002
-      lr_whisper_unfrozen: 0.00002
       warmup_steps: 1500
       scheduler: cosine
-      min_lr_ratio: 0.05
+      min_lr_ratio: 0.1
     batching:
-      max_tokens_per_device: 3000
+      max_tokens_per_device: 3600
       gradient_accumulation: 16
       dataloader_num_workers: 8
       max_context: 4096
       bucket_by_length: true
+    train_manifests:
+      - manifest: data/manifests/tiny_asr.jsonl
+        weight: 0.4
+        type: asr
+      - manifest: data/manifests/tiny_tts.jsonl
+        weight: 0.3
+        type: tts
+      - manifest: data/manifests/tiny_synth_tts.jsonl
+        weight: 0.6
+        type: synth
+      - manifest: data/manifests/tiny_dialog.jsonl
+        weight: 0.3
+        type: spoken_dialog
+    eval_manifests:
+      - manifest: data/manifests/tiny_dialog_dev.jsonl
+        weight: 1.0
+        type: spoken_dialog
     freeze:
       whisper:
         trainable_layers: [18, 23]
@@ -147,35 +192,26 @@
           weight: 1.0
         - name: audio_codebook_ce
           weight: 1.0
-        - name: emotion_cls
-          weight: 0.1
     mixing:
       datasets:
         - name: spoken_dialog
-          weight: 0.4
+          weight: 0.3
         - name: asr
           weight: 0.2
         - name: tts
           weight: 0.2
-        - name: text_only
-          weight: 0.2
-      language_upweight:
-        zh-TW: 1.5
-        zh: 1.3
-        ja: 1.2
-        ko: 1.2
-        de: 1.1
-        fr: 1.1
+        - name: synth
+          weight: 0.3
     validation_metrics: [perplexity, codebook_accuracy, mcd, wer]
 
   stage5:
-    description: Stage 5 - Full-duplex streaming and interruption modeling
+    description: Stage 4 - Tiny 串流 / 打斷行為建模
     seed: 46
     precision: bf16
-    train_steps: 80000
-    save_interval: 4000
+    train_steps: 24000
+    save_interval: 3000
     log_interval: 50
-    validation_interval: 1000
+    validation_interval: 1200
     resume_from: checkpoints/stage4/last
     use_deepspeed: true
     accelerate_config: configs/deepspeed.json
@@ -185,39 +221,55 @@
       lr_text_head: 0.0001
       lr_interrupt_head: 0.0001
       lr_qwen_lora: 0.00002
-      lr_whisper_unfrozen: 0.00002
       warmup_steps: 1000
       scheduler: cosine
-      min_lr_ratio: 0.05
+      min_lr_ratio: 0.1
     batching:
-      max_tokens_per_device: 2800
+      max_tokens_per_device: 3200
       gradient_accumulation: 16
       dataloader_num_workers: 8
       max_context: 4096
       bucket_by_length: true
+    train_manifests:
+      - manifest: data/manifests/tiny_dialog.jsonl
+        weight: 0.3
+        type: spoken_dialog
+      - manifest: data/manifests/tiny_synth_tts.jsonl
+        weight: 0.3
+        type: synth
+      - manifest: data/manifests/tiny_duplex.jsonl
+        weight: 0.3
+        type: duplex_synthetic
+      - manifest: data/manifests/tiny_asr.jsonl
+        weight: 0.1
+        type: asr
+    eval_manifests:
+      - manifest: data/manifests/tiny_duplex_dev.jsonl
+        weight: 1.0
+        type: duplex_synthetic
     additional_heads:
       interruptibility:
         type: binary
         loss_weight: 0.3
     latency_training:
-      random_future_mask_ms: [120, 320]
-      chunk_tokens: 64
+      random_future_mask_ms: [160, 320]
+      chunk_tokens: 48
       kd_latency_weight: 0.2
     mixing:
       datasets:
         - name: spoken_dialog
-          weight: 0.35
+          weight: 0.25
         - name: asr
-          weight: 0.15
+          weight: 0.1
         - name: tts
           weight: 0.15
+        - name: synth
+          weight: 0.3
         - name: duplex_synthetic
           weight: 0.2
-        - name: text_only
-          weight: 0.15
       duplex_generation:
         barge_in_probability: 0.4
-        noise_overlay_probability: 0.2
+        noise_overlay_probability: 0.25
     validation_metrics: [wer, latency_ms, barge_in_success, false_interrupt_rate]
 
   stage6:

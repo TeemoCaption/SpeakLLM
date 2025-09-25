@@ -1,92 +1,66 @@
 # Primary multilingual speech datasets
 mix:
+  # ---- ASR (real) ----
+  - name: common_voice_17_0
+    subset: zh-TW
+    split: train
+    lang: zh-TW
+    hours: 150
+    weight: 0.45
+    type: asr
+
   - name: librispeech
     split: train-clean-100
     lang: en
     hours: 100
-    weight: 0.15
+    weight: 0.25
     type: asr
-  - name: gigaspeech
-    subset: medium
-    lang: en
-    hours: 250
-    weight: 0.10
-    type: asr
-  - name: common_voice_17_0
-    subset: zh-TW
-    lang: zh-TW
-    hours: 120
-    weight: 0.12
-    type: asr
-  - name: wenetspeech
-    subset: train_u
+
+  # ---- TTS (real) ----
+  - name: AISHELL-3
+    split: train
     lang: zh
-    hours: 1000
-    weight: 0.18
-    type: asr
-  - name: aishell_1
-    lang: zh
-    hours: 150
-    weight: 0.05
-    type: asr
-  - name: jsut
-    lang: ja
-    hours: 10
-    weight: 0.05
-    type: asr
-  - name: jvs
-    lang: ja
-    hours: 20
-    weight: 0.03
-    type: asr
-  - name: kspon
-    lang: ko
-    hours: 24
-    weight: 0.05
-    type: asr
-  - name: zeroth_korean
-    lang: ko
-    hours: 51
-    weight: 0.03
-    type: asr
-  - name: mls_de
-    lang: de
-    hours: 400
-    weight: 0.06
-    type: asr
-  - name: mls_fr
-    lang: fr
-    hours: 300
-    weight: 0.05
-    type: asr
-  - name: voxpopuli
-    subset: asr
-    lang: multi
-    hours: 400
-    weight: 0.08
-    type: asr
-  - name: iemocap
-    lang: en
-    hours: 12
-    weight: 0.03
-    type: emo
-  - name: esd
-    lang: multi
     hours: 30
+    weight: 0.12
+    type: tts
+
+  - name: VCTK
+    split: train
+    lang: en
+    hours: 30
+    weight: 0.08
+    type: tts
+
+  # ---- Duplex / Overlap 合成 ----
+  - name: duplex_synth_zh
+    split: train
+    lang: zh
+    hours: 30
+    weight: 0.08
+    type: duplex
+    label: barge_in
+
+  - name: duplex_synth_en
+    split: train
+    lang: en
+    hours: 10
     weight: 0.02
-    type: emo
+    type: duplex
+    label: barge_in
 
 synthetic_tts:
-  - name: dailydialog_tts
-    lang: multi
+  - name: cosyvoice2_cosy_zh
+    lang: zh
     items: 200000
-    weight: 0.05
-    provider: coqui-tts
-  - name: empatheticdialogues_tts
-    lang: multi
+    weight: 0.20
+    provider: cosyvoice2
+    metadata: data/synthetic/cosyvoice2_zh/metadata.json
+  - name: cosyvoice2_cosy_en
+    lang: en
     items: 150000
-    weight: 0.03
-    provider: edge-tts
+    weight: 0.15
+    provider: cosyvoice2
+    metadata: data/synthetic/cosyvoice2_en/metadata.json
 
 noise:
   - name: musan
@@ -97,24 +71,13 @@ noise:
     type: noise
 
 validation_sets:
+  - name: common_voice_17_0
+    subset: zh-TW
+    split: validation
+    lang: zh-TW
   - name: librispeech
     split: dev-clean
     lang: en
-  - name: wenetspeech
-    split: dev
-    lang: zh
-  - name: jsut
-    split: test
-    lang: ja
-  - name: kspon
-    split: dev
-    lang: ko
-  - name: mls_de
-    split: dev
-    lang: de
-  - name: mls_fr
-    split: dev
-    lang: fr
 
 manifest_schema:
   path: str
@@ -125,5 +88,4 @@ manifest_schema:
   dataset: str
   split: str
   type: str
-  emotion: optional[str]
-  sample_rate: optional[int]
+  label: optional[str]

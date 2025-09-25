@@ -30,6 +30,9 @@ jiwer>=3.0.4
 sentencepiece>=0.2.0
 encodec>=0.1.1
 
+# optional TTS synthesis tools
+# cosyvoice2>=0.1.0  # 需依模型卡另外安裝（FunAudioLLM/CosyVoice2-0.5B）
+
 # logging and evaluation
 tqdm==4.66.4
 wandb==0.17.7

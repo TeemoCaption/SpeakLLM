@@ -34,43 +34,72 @@ accelerate config --config_file configs/deepspeed.json
 python scripts/data_tools.py fetch-models --root .
 ```
 
-This command fetches the required Hugging Face assets into the repo:
 - openai/whisper-medium → models/whisper-medium/
 - Qwen/Qwen2-7B → models/qwen2-7b/
 - maitrix-org/Voila-Tokenizer → 	okenizer/voila_tokenizer/
 {{ ... }}
 
-## Tiny zh+en Recipe (automated download + preprocessing)
+## Data Preparation
+### 1. 下載語料 / 生成 manifest
 
-Reproduce the bilingual TINY recipe (Common Voice zh-TW/en, AISHELL-3, VCTK) and stage manifests/features:
+python scripts/data_tools.py fetch-common-voice --subset zh-TW --split train --output datasets/common_voice_zh_tw && python scripts/data_tools.py make-manifest --input datasets/common_voice_zh_tw/train.jsonl --output data/manifests/common_voice_zh_tw_train.jsonl --lang zh-TW --dataset common_voice_zh_tw
 
-```
-python scripts/data_tools.py make-tiny \
-    --datasets-root datasets \
-    --manifests-root data/manifests \
-    --mel-root data/processed/mels \
-    --codes-root data/processed/voila_codes \
-    --quantize --voila-tokenizer tokenizer/voila_tokenizer
-{{ ... }}
+python scripts/data_tools.py fetch-librispeech --subset train-clean-100 --output datasets/librispeech && python scripts/data_tools.py make-manifest --input datasets/librispeech/train-clean-100.jsonl --output data/manifests/librispeech_train.jsonl --lang en --dataset librispeech
+# AISHELL-3 / VCTK manifest 亦可使用 make-manifest 生成
+### 2. 產生 barge-in / 重疊語音
 
-## Manual Data Ingestion
+python scripts/data_tools.py make-barge --foreground data/clean_speech --background data/noise_pool --output data/processed/duplex --count 10000 --snr-min 0 --snr-max 10
+指令會輸出 `data/processed/duplex/wav/` 及 `barge_in.jsonl`。將生成的 manifest 路徑填入 `configs/data.yml` 中的 `duplex_synth_zh` 或 `duplex_synth_en`，即可在訓練時混入 20–30% 插話樣本。
 
-For additional corpora (noise, large-scale ASR/TTS), drop raw audio under datasets/<dataset>/ and normalize manifests with:
+### 3. 特徵、量化與序列化
 
 ```
-python scripts/data_tools.py make-manifest --input path/to/raw_manifest.jsonl \
-    --output data/manifests/my_dataset.jsonl --lang zh --dataset my_dataset
+# Whisper log-mel
+python scripts/data_tools.py make-mels --manifest data/manifests/common_voice_zh_tw_train.jsonl --output_dir data/processed/mels/common_voice_zh_tw
+
+# Voila 量化
+python scripts/data_tools.py make-codes --manifest data/manifests/common_voice_zh_tw_train.jsonl --tokenizer tokenizer/voila_tokenizer --output_dir data/processed/voila_codes/common_voice_zh_tw
+
+# 序列組裝
+python scripts/data_tools.py make-seq --manifest data/manifests/common_voice_zh_tw_train.jsonl --codes_dir data/processed/voila_codes/common_voice_zh_tw --output data/processed/sequences/common_voice_zh_tw.jsonl
 ```
 
-## Core Pipeline
+其他語料（如 `librispeech_train.jsonl`、`AISHELL-3`、`VCTK`）依樣操作，將輸出路徑填入 `configs/train.yml` 對應階段即可。
 
-{{ ... }}
-6. **Streaming inference**: python scripts/stream_infer.py --checkpoint checkpoints/stage5.
-7. **Evaluation & stress**: python scripts/eval_tools.py <asr|tts|qa|barge> ... and python scripts/loadtest.py .
+### 4. CosyVoice2 合成語音
+裡提供 `train_manifests` 與 `eval_manifests` 陣列，項目結構：
+
+- **manifest**：指向 JSONL 清單檔案絕對或相對路徑。
+- **weight**：用於資料混合時的抽樣權重（浮點數，可選）。
+- **type**：資料類型標籤（如 `asr`、`tts`、`spoken_dialog`，可選）。
+
+
+- **text**：目標文字或回答內容。
+- **prompt**：使用者輸入（若為單純 ASR 可留空）。
+- **audio_codes / codes_path**：Voila-Tokenizer 產生的 4 層 RVQ 索引或其檔案路徑。
+- **mel_path**：Whisper 對應的 log-mel 特徵檔案。
+- **chunk_spans**：每段 `<AUDIO_CHUNK>` 在原始音訊內的起訖 frame（若缺少會自動依預設長度推估）。
+- **interrupt_label**：是否中斷的標籤（Streaming 階段使用，可為 -100 表示忽略）。
+
+若需覆寫欄位名稱，可在階段設定中加入 `data_fields` 對應鍵值。
+
+## 合成語音（CosyVoice2 範例）
+
+本專案提供腳本 `scripts/synth_cosyvoice2.py`，可利用 [FunAudioLLM/CosyVoice2-0.5B](https://huggingface.co/FunAudioLLM/CosyVoice2-0.5B) 產生中英雙語語音。
+
+```
+python scripts/synth_cosyvoice2.py --output data/synthetic/cosyvoice2 --zh-ref-dir /path/to/AISHELL-3/wav --en-ref-dir /path/to/VCTK/wav --zh-texts resources/zh_prompts.txt --en-texts resources/en_prompts.txt --zh-count 3000 --en-count 3000
+```
+
+- **參考語者**：`--zh-ref-dir`、`--en-ref-dir` 指向現有資料集 wav 目錄（會隨機抽樣）。
+- **語句**：可透過 `--zh-texts` / `--en-texts` 提供自備腳本，或改以 `--hf-dataset` 連結 Common Voice 等 HF corpus。
+- **情緒與語速**：`--zh-emotions`、`--en-emotions`、`--rate-range` 可自訂候選。
+- **輸出**：腳本生成 wav 檔與 `metadata.json`，可直接納入 `train_manifests`。
+
+> **注意**：CosyVoice2 依賴需依模型卡指引自行安裝，可參考 `requirements.txt` 中的註記。
 
 ## TODO
 
-- Implement dataset readers/collators in scripts/train_core.py (create_dataloaders) and wire full model construction in  build_model.
 - Flesh out scripts/data_tools.py make-seq with tokenizer IDs, attention masks, and loss weighting.
 - Integrate CosyVoice2 synthetic TTS generation and duplex augmentation pipelines.
 - Expand safety templates in configs/safety.yml per deployment requirements.
