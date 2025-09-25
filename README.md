@@ -2,67 +2,58 @@
 
 This repository scaffolds a multilingual speech-language model pipeline that combines **Voila-Tokenizer**, **Whisper-Medium**, and **Qwen-7B** for unified ASR, TTS, and full-duplex dialogue.
 
-## Layout
 
-`
-configs/             # YAML configs for model, data, and training stages
-data/                # Processed features, manifests, and sequences
-models/              # Downloaded backbone checkpoints (Whisper, Qwen)
-tokenizer/           # Tokenizer assets and generated codebook tokens
-scripts/             # Data utilities, training, inference, evaluation
-logs/, checkpoints/  # Runtime artifacts (git-ignored)
-datasets/            # Raw corpora downloaded by helper commands
-`
-
-## Environment
-
-- Python 3.10+
-- CUDA 12.1+, cuDNN 9+, PyTorch 2.3.1 (pip install torch==2.3.1+cu121 ...)
-- Key packages: lash-attn==2.5.6, 	ransformers==4.43.3, datasets==2.20.0,
-  ccelerate==0.33.0, itsandbytes==0.43.1, 	orchaudio==2.3.1, peft==0.11.1,
-  soundfile, librosa, fmpeg-python, huggingface-hub
-
-`
-python -m venv .venv
-. .venv/Scripts/activate        # PowerShell: .\.venv\Scripts\Activate.ps1
-accelerate config --config_file configs/deepspeed.json
-`
-
-## Model & Tokenizer Downloads (automated)
+## 專案結構
 
 ```
-python scripts/data_tools.py fetch-models --root .
+SpeechLLM/
+├── .vscode/
+│   └── settings.json
+├── checkpoints/
+├── configs/
+│   ├── data.yml
+│   ├── deepspeed.json
+│   ├── model.yml
+│   ├── safety.yml
+│   └── train.yml
+├── datasets/
+├── logs/
+├── models/
+│   ├── adapters/
+│   ├── audio_decoder/
+│   └── heads/
+├── notebooks/
+├── scripts/
+│   ├── data_tools.py
+│   ├── eval_tools.py
+│   ├── loadtest.py
+│   ├── synth_cosyvoice2.py
+│   └── train_core.py
+├── tokenizer/
+│   ├── new_tokens.txt
+│   └── voila_tokenizer/
+├── .gitignore
+├── README.md
+└── requirements.txt
 ```
-
-- openai/whisper-medium → models/whisper-medium/
-- Qwen/Qwen2-7B → models/qwen2-7b/
-- maitrix-org/Voila-Tokenizer → 	okenizer/voila_tokenizer/
-{{ ... }}
 
 ## Data Preparation
 ### 1. 下載語料 / 生成 manifest
 
-python scripts/data_tools.py fetch-common-voice --subset zh-TW --split train --output datasets/common_voice_zh_tw && python scripts/data_tools.py make-manifest --input datasets/common_voice_zh_tw/train.jsonl --output data/manifests/common_voice_zh_tw_train.jsonl --lang zh-TW --dataset common_voice_zh_tw
+- **下載 Common Voice 並生成 manifest**：`python scripts/data_tools.py fetch-common-voice --subset zh-TW --split train --output datasets/common_voice_zh_tw && python scripts/data_tools.py make-manifest --input datasets/common_voice_zh_tw/train.jsonl --output data/manifests/common_voice_zh_tw_train.jsonl --lang zh-TW --dataset common_voice_zh_tw`
 
-python scripts/data_tools.py fetch-librispeech --subset train-clean-100 --output datasets/librispeech && python scripts/data_tools.py make-manifest --input datasets/librispeech/train-clean-100.jsonl --output data/manifests/librispeech_train.jsonl --lang en --dataset librispeech
+- **下載 LibriSpeech 並生成 manifest**：`python scripts/data_tools.py fetch-librispeech --subset train-clean-100 --output datasets/librispeech && python scripts/data_tools.py make-manifest --input datasets/librispeech/train-clean-100.jsonl --output data/manifests/librispeech_train.jsonl --lang en --dataset librispeech`
 # AISHELL-3 / VCTK manifest 亦可使用 make-manifest 生成
 ### 2. 產生 barge-in / 重疊語音
 
-python scripts/data_tools.py make-barge --foreground data/clean_speech --background data/noise_pool --output data/processed/duplex --count 10000 --snr-min 0 --snr-max 10
+- **合成插話與重疊語音**：`python scripts/data_tools.py make-barge --foreground data/clean_speech --background data/noise_pool --output data/processed/duplex --count 10000 --snr-min 0 --snr-max 10`
 指令會輸出 `data/processed/duplex/wav/` 及 `barge_in.jsonl`。將生成的 manifest 路徑填入 `configs/data.yml` 中的 `duplex_synth_zh` 或 `duplex_synth_en`，即可在訓練時混入 20–30% 插話樣本。
 
 ### 3. 特徵、量化與序列化
 
-```
-# Whisper log-mel
-python scripts/data_tools.py make-mels --manifest data/manifests/common_voice_zh_tw_train.jsonl --output_dir data/processed/mels/common_voice_zh_tw
-
-# Voila 量化
-python scripts/data_tools.py make-codes --manifest data/manifests/common_voice_zh_tw_train.jsonl --tokenizer tokenizer/voila_tokenizer --output_dir data/processed/voila_codes/common_voice_zh_tw
-
-# 序列組裝
-python scripts/data_tools.py make-seq --manifest data/manifests/common_voice_zh_tw_train.jsonl --codes_dir data/processed/voila_codes/common_voice_zh_tw --output data/processed/sequences/common_voice_zh_tw.jsonl
-```
+- **Whisper 對數梅爾特徵**：`python scripts/data_tools.py make-mels --manifest data/manifests/common_voice_zh_tw_train.jsonl --output_dir data/processed/mels/common_voice_zh_tw`
+- **Voila 量化**：`python scripts/data_tools.py make-codes --manifest data/manifests/common_voice_zh_tw_train.jsonl --tokenizer tokenizer/voila_tokenizer --output_dir data/processed/voila_codes/common_voice_zh_tw`
+- **序列組裝**：`python scripts/data_tools.py make-seq --manifest data/manifests/common_voice_zh_tw_train.jsonl --codes_dir data/processed/voila_codes/common_voice_zh_tw --output data/processed/sequences/common_voice_zh_tw.jsonl`
 
 其他語料（如 `librispeech_train.jsonl`、`AISHELL-3`、`VCTK`）依樣操作，將輸出路徑填入 `configs/train.yml` 對應階段即可。
 
@@ -87,9 +78,7 @@ python scripts/data_tools.py make-seq --manifest data/manifests/common_voice_zh_
 
 本專案提供腳本 `scripts/synth_cosyvoice2.py`，可利用 [FunAudioLLM/CosyVoice2-0.5B](https://huggingface.co/FunAudioLLM/CosyVoice2-0.5B) 產生中英雙語語音。
 
-```
-python scripts/synth_cosyvoice2.py --output data/synthetic/cosyvoice2 --zh-ref-dir /path/to/AISHELL-3/wav --en-ref-dir /path/to/VCTK/wav --zh-texts resources/zh_prompts.txt --en-texts resources/en_prompts.txt --zh-count 3000 --en-count 3000
-```
+- **批次合成中英語音**：`python scripts/synth_cosyvoice2.py --output data/synthetic/cosyvoice2 --zh-ref-dir /path/to/AISHELL-3/wav --en-ref-dir /path/to/VCTK/wav --zh-texts resources/zh_prompts.txt --en-texts resources/en_prompts.txt --zh-count 3000 --en-count 3000`
 
 - **參考語者**：`--zh-ref-dir`、`--en-ref-dir` 指向現有資料集 wav 目錄（會隨機抽樣）。
 - **語句**：可透過 `--zh-texts` / `--en-texts` 提供自備腳本，或改以 `--hf-dataset` 連結 Common Voice 等 HF corpus。
