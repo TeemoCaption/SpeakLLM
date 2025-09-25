@@ -13,21 +13,23 @@ app = typer.Typer()
 
 
 @app.command()
-def main(config: Path = typer.Option(..., exists=True), output: Path = typer.Option(Path("data/raw"))) -> None:
+def main(config: Path = typer.Option(..., exists=True)) -> None:
     cfg = load_yaml(config)
     sources = cfg.get("sources", [])
-    output.mkdir(parents=True, exist_ok=True)
     for source in sources:
         name = source["name"]
         dataset = source["dataset"]
         split = source.get("split", "train")
-        typer.echo(f"Preparing {dataset}:{split}")
-        ds = load_dataset(dataset, split=split, streaming=source.get("streaming", False))
-        if source.get("streaming", False):
-            typer.echo(f"Streaming dataset {name}; skipping materialization")
-            continue
-        ds.to_json(output / f"{name}_{split}.jsonl")
-    typer.echo("Instruction dataset download complete")
+        streaming = source.get("streaming", False)
+        kwargs = {"split": split, "streaming": streaming}
+        if source.get("config"):
+            kwargs["name"] = source["config"]
+        typer.echo(f"Prefetching {dataset}:{split} (streaming={streaming})")
+        ds = load_dataset(dataset, **kwargs)
+        if not streaming:
+            _ = ds.shard(num_shards=1, index=0)
+        typer.echo(f"Ready: {name}")
+    typer.echo("Datasets checked/cached. Use scripts/prepare/build_manifests.py to create manifests.")
 
 
 if __name__ == "__main__":

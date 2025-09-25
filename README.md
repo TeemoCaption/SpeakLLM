@@ -71,23 +71,32 @@
   ```
 - 複製環境變數樣板並填入 `HF_TOKEN`：
   ```bash
-  copy .env.example .env
+  cp .env.example .env  # macOS / Linux / Git Bash
   ```
 - PowerShell 可改用：
   ```powershell
   Copy-Item .env.example .env
   ```
-- 下載 ASR 語料：
+- Windows CMD：
+  ```cmd
+  copy .env.example .env
+  ```
+- 驗證/快取 ASR 語料（支援 streaming） ：
   ```bash
   python scripts/data_download/download_asr_datasets.py --config configs/data/asr_zh.yaml
   ```
-- 下載 TTS 語料：
+- 驗證/快取 TTS 語料：
   ```bash
   python scripts/data_download/download_tts_datasets.py --config configs/data/tts_zh.yaml
   ```
 - 產生訓練清單：
   ```bash
   python scripts/prepare/build_manifests.py --config configs/data/asr_zh.yaml --output data/manifests/asr_train.jsonl
+  python scripts/prepare/build_manifests.py --config configs/data/tts_zh.yaml --output data/manifests/tts_train.jsonl
+  ```
+- （可選）產生 Voila RVQ token 清單：
+  ```bash
+  python scripts/tokenizer/extract_voila_tokens.py --manifest data/manifests/tts_train.jsonl --output data/manifests/tts_voila_codes.jsonl --checkpoint maitrix-org/Voila-Tokenizer
   ```
 - 啟動 Phase 0 訓練：
   ```bash
@@ -99,7 +108,7 @@
   ```
 
 ## 完整訓練流程
-1. 下載所有語料（ASR / TTS / 指令與混碼）：
+1. 驗證/快取所有語料（ASR / TTS / 指令與混碼）：
    ```bash
    python scripts/data_download/download_asr_datasets.py --config configs/data/asr_zh.yaml
    python scripts/data_download/download_tts_datasets.py --config configs/data/tts_zh.yaml
@@ -110,7 +119,7 @@
    python scripts/prepare/build_manifests.py --config configs/data/asr_zh.yaml --output data/manifests/asr_train.jsonl
    python scripts/prepare/build_manifests.py --config configs/data/tts_zh.yaml --output data/manifests/tts_train.jsonl
    python scripts/prepare/normalize_text_zh.py --manifest data/manifests/asr_train.jsonl --output data/manifests/asr_train_normalized.jsonl --conversion t2s
-   python scripts/prepare/resample_split.py --manifest data/manifests/asr_train_normalized.jsonl --output_dir data/resampled --target_sr 16000 --vad True
+   python scripts/prepare/resample_split.py --manifest data/manifests/asr_train_normalized.jsonl --output_dir data/resampled --target_sr 16000 --vad
    python scripts/tokenizer/extract_voila_tokens.py --manifest data/manifests/tts_train.jsonl --output data/manifests/tts_voila_codes.jsonl --checkpoint maitrix-org/Voila-Tokenizer
    ```
 3. 進行四階段訓練（確保 `configs/train/*.yaml` 指向正確的 checkpoint 與清單）：
