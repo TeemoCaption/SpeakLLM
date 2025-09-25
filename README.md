@@ -98,6 +98,41 @@
   python -m runtime.server
   ```
 
+## 完整訓練流程
+1. 下載所有語料（ASR / TTS / 指令與混碼）：
+   ```bash
+   python scripts/data_download/download_asr_datasets.py --config configs/data/asr_zh.yaml
+   python scripts/data_download/download_tts_datasets.py --config configs/data/tts_zh.yaml
+   python scripts/data_download/download_instruction_datasets.py --config configs/data/mixed_cs.yaml
+   ```
+2. 生成資料清單與對齊資訊：
+   ```bash
+   python scripts/prepare/build_manifests.py --config configs/data/asr_zh.yaml --output data/manifests/asr_train.jsonl
+   python scripts/prepare/build_manifests.py --config configs/data/tts_zh.yaml --output data/manifests/tts_train.jsonl
+   python scripts/prepare/normalize_text_zh.py --manifest data/manifests/asr_train.jsonl --output data/manifests/asr_train_normalized.jsonl --conversion t2s
+   python scripts/prepare/resample_split.py --manifest data/manifests/asr_train_normalized.jsonl --output_dir data/resampled --target_sr 16000 --vad True
+   python scripts/tokenizer/extract_voila_tokens.py --manifest data/manifests/tts_train.jsonl --output data/manifests/tts_voila_codes.jsonl --checkpoint maitrix-org/Voila-Tokenizer
+   ```
+3. 進行四階段訓練（確保 `configs/train/*.yaml` 指向正確的 checkpoint 與清單）：
+   ```bash
+   bash scripts/train_phase0.sh configs/train/phase0_connector.yaml
+   bash scripts/train_phase1.sh configs/train/phase1_sft.yaml
+   bash scripts/train_phase2.sh configs/train/phase2_duplex.yaml
+   bash scripts/train_phase3.sh configs/train/phase3_emotion.yaml
+   ```
+4. 匯出推論模型與測試（可選）：
+   ```bash
+   bash scripts/export_onnx.sh onnx_exports
+   python -m runtime.server --config configs/infer/server.yaml
+   python -m runtime.client_cli stream --audio examples/sample.wav
+   ```
+5. 記錄與監控：
+   - 每階段輸出會寫入 `outputs/phase*`，可在 Weights & Biases (`wandb_project=voice-duplex-zh`) 上查看損失與延遲指標。
+   - 使用 `tests/` 內測試在關鍵變更後驗證基礎功能：
+     ```bash
+     pytest tests
+     ```
+
 ## 文件導覽
 - **`docs/architecture.md`**：系統總體架構與模組說明。
 - **`docs/research_modules.md`**：Dual-Scale、Tone-Aware、Overlap-Aware、code-switch 等新方法詳述。
