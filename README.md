@@ -61,14 +61,42 @@
 ```
 
 ## 快速開始
-- **建立 Conda 環境**：`conda env create -f env/environment.yml && conda activate voice-duplex-zh`
-- **或使用 Pip 安裝**：`pip install -r requirements.txt`
-- **複製環境變數樣板**：`copy .env.example .env`（PowerShell 可用 `Copy-Item .env.example .env`，並填入 `HF_TOKEN` 等欄位）
-- **下載 ASR 語料**：`python scripts/data_download/download_asr_datasets.py --config configs/data/asr_zh.yaml`
-- **下載 TTS 語料**：`python scripts/data_download/download_tts_datasets.py --config configs/data/tts_zh.yaml`
-- **產生訓練清單**：`python scripts/prepare/build_manifests.py --config configs/data/asr_zh.yaml --output data/manifests/asr_train.jsonl`
-- **啟動 Phase 0 訓練**：`bash scripts/train_phase0.sh configs/train/phase0_connector.yaml`
-- **啟動測試伺服器**：`python -m runtime.server`
+- 建立 Conda 環境：
+  ```bash
+  conda env create -f env/environment.yml && conda activate voice-duplex-zh
+  ```
+- 或使用 Pip 安裝：
+  ```bash
+  pip install -r requirements.txt
+  ```
+- 複製環境變數樣板並填入 `HF_TOKEN`：
+  ```bash
+  copy .env.example .env
+  ```
+- PowerShell 可改用：
+  ```powershell
+  Copy-Item .env.example .env
+  ```
+- 下載 ASR 語料：
+  ```bash
+  python scripts/data_download/download_asr_datasets.py --config configs/data/asr_zh.yaml
+  ```
+- 下載 TTS 語料：
+  ```bash
+  python scripts/data_download/download_tts_datasets.py --config configs/data/tts_zh.yaml
+  ```
+- 產生訓練清單：
+  ```bash
+  python scripts/prepare/build_manifests.py --config configs/data/asr_zh.yaml --output data/manifests/asr_train.jsonl
+  ```
+- 啟動 Phase 0 訓練：
+  ```bash
+  bash scripts/train_phase0.sh configs/train/phase0_connector.yaml
+  ```
+- 啟動測試伺服器：
+  ```bash
+  python -m runtime.server
+  ```
 
 ## 文件導覽
 - **`docs/architecture.md`**：系統總體架構與模組說明。
