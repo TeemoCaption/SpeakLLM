@@ -20,7 +20,12 @@ def main(config: Path = typer.Option(..., exists=True)) -> None:
         dataset = source["dataset"]
         split = source.get("split", "train")
         streaming = source.get("streaming", False)
-        kwargs = {"split": split, "streaming": streaming}
+        kwargs = {
+            "split": split,
+            "streaming": streaming,
+            "verification_mode": "no_checks",
+            "trust_remote_code": True,
+        }
         if source.get("config"):
             kwargs["name"] = source["config"]
         typer.echo(f"Prefetching {dataset}:{split} (streaming={streaming})")

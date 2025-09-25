@@ -22,7 +22,12 @@ def main(config: Path = typer.Option(..., exists=True, help="Path to data YAML c
         split = source.get("split", "train")
         config_name = source.get("config")
         streaming = source.get("streaming", False)
-        kwargs = {"split": split, "streaming": streaming}
+        kwargs = {
+            "split": split,
+            "streaming": streaming,
+            "verification_mode": "no_checks",
+            "trust_remote_code": True,
+        }
         if config_name:
             kwargs["name"] = config_name
         typer.echo(f"Prefetching {dataset}:{split} (streaming={streaming})")
