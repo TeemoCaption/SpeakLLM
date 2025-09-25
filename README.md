@@ -63,6 +63,7 @@
 ## 快速開始
 - **建立 Conda 環境**：`conda env create -f env/environment.yml && conda activate voice-duplex-zh`
 - **或使用 Pip 安裝**：`pip install -r requirements.txt`
+- **複製環境變數樣板**：`copy .env.example .env`（PowerShell 可用 `Copy-Item .env.example .env`，並填入 `HF_TOKEN` 等欄位）
 - **下載 ASR 語料**：`python scripts/data_download/download_asr_datasets.py --config configs/data/asr_zh.yaml`
 - **下載 TTS 語料**：`python scripts/data_download/download_tts_datasets.py --config configs/data/tts_zh.yaml`
 - **產生訓練清單**：`python scripts/prepare/build_manifests.py --config configs/data/asr_zh.yaml --output data/manifests/asr_train.jsonl`

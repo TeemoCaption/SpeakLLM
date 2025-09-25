@@ -1,1 +1,38 @@
--e .[dev]
+# Core runtime dependencies
+torch>=2.2
+torchaudio>=2.2
+transformers>=4.39
+datasets>=2.18
+accelerate>=0.28
+peft>=0.10
+sentencepiece
+soundfile
+opencc-python-reimplemented
+pypinyin
+g2pc
+webrtcvad-wheels
+onnxruntime-gpu>=1.17
+protobuf
+pyyaml
+typer[all]>=0.9
+rich
+fastapi
+uvicorn[standard]
+websockets
+grpcio
+grpcio-tools
+numpy
+scipy
+librosa
+evaluate
+jiwer
+tqdm
+
+# Developer tooling
+pytest
+pytest-asyncio
+ruff
+mypy
+
+# Install the local package in editable mode
+-e .
