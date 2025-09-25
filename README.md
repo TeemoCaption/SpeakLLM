@@ -89,7 +89,7 @@
   ```bash
   python scripts/data_download/download_tts_datasets.py --config configs/data/tts_zh.yaml
   ```
-- 產生訓練清單：
+- 產生訓練清單（若資料集為 streaming，會只記錄 tar 路徑與索引）：
   ```bash
   python scripts/prepare/build_manifests.py --config configs/data/asr_zh.yaml --output data/manifests/asr_train.jsonl
   python scripts/prepare/build_manifests.py --config configs/data/tts_zh.yaml --output data/manifests/tts_train.jsonl

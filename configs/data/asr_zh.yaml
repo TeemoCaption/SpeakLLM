@@ -17,7 +17,7 @@ sources:
   - name: aishell_1
     dataset: AISHELL/AISHELL-1
     split: train
-    streaming: false
+    streaming: true
     weight: 0.10
   - name: fleurs_zh_tw
     dataset: google/fleurs
