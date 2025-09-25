@@ -1,0 +1,42 @@
+seed: 42
+sample_rate: 24000
+prosody_features:
+  - pitch
+  - energy
+  - duration
+  - tone_tag
+sources:
+  - name: aishell_3
+    dataset: AISHELL/AISHELL-3
+    split: train
+    speaker_meta: true
+    weight: 0.25
+  - name: wenetspeech4tts_premium
+    dataset: Wenetspeech4TTS/WenetSpeech4TTS
+    config: premium
+    split: train
+    streaming: false
+    weight: 0.35
+  - name: csemotions
+    dataset: AIDC-AI/CSEMOTIONS
+    split: train
+    emotion_labels: true
+    weight: 0.10
+  - name: libritts_r
+    dataset: mythicinfinity/libritts_r
+    split: train
+    streaming: true
+    weight: 0.20
+  - name: vctk
+    dataset: badayvedat/VCTK
+    split: train
+    streaming: true
+    weight: 0.10
+alignment:
+  mel_hop_ms: 10
+  syllable_reference: data/manifests/asr_syllable_alignment.jsonl
+  rvq_levels: 8
+  tokenizer: maitrix-org/Voila-Tokenizer
+cache:
+  features_dir: data/local_cache/tts_features
+  reuse_existing: true

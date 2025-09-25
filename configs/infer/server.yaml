@@ -1,0 +1,27 @@
+server:
+  host: 0.0.0.0
+  port: 8080
+  protocol: websocket
+  max_clients: 16
+buffers:
+  input_hop_ms: 20
+  output_chunk_ms: 320
+  jitter_ms: 180
+models:
+  whisper_checkpoint: openai/whisper-medium
+  connector_checkpoint: outputs/phase2/connector.pt
+  llm_checkpoint: outputs/phase2/lora
+  duplex_controller: outputs/phase2/controller.pt
+  cosyvoice_checkpoint: cosvoice/cosyvoice2-0.5b
+  voila_tokenizer: maitrix-org/Voila-Tokenizer
+runtime:
+  device: cuda:0
+  dtype: bfloat16
+  max_text_tokens: 512
+  max_audio_seconds: 30
+  barge_in_threshold_db: -35
+  barge_in_min_duration_ms: 120
+logging:
+  level: INFO
+  use_wandb: false
+  event_log: logs/duplex_events.log

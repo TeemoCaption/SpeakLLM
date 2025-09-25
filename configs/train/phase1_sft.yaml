@@ -1,0 +1,47 @@
+experiment:
+  name: phase1_sft_semiduplex
+  output_dir: outputs/phase1
+  seed: 2024
+model:
+  whisper_checkpoint: openai/whisper-medium
+  connector_checkpoint: outputs/phase0/best.pt
+  duplex_controller_checkpoint: outputs/phase0/controller.pt
+llm:
+  checkpoint: Qwen/Qwen2.5-7B-Instruct
+  lora_r: 8
+  lora_alpha: 16
+  lora_dropout: 0.05
+  target_modules:
+    - q_proj
+    - v_proj
+    - k_proj
+    - o_proj
+  max_length: 8192
+trainer:
+  precision: bf16
+  batch_size: 16
+  grad_accumulation: 8
+  lr_lora: 1.0e-4
+  lr_connector: 5.0e-5
+  lr_controller: 5.0e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.03
+  max_steps: 20000
+  gradient_checkpointing: true
+loss:
+  ce_weight: 1.0
+  distill_weight: 0.2
+  prosody_weight: 0.1
+data:
+  asr_config: configs/data/asr_zh.yaml
+  mixed_config: configs/data/mixed_cs.yaml
+  manifest_text: data/manifests/sft_text_train.jsonl
+  manifest_audio: data/manifests/asr_train.jsonl
+  num_workers: 12
+monitoring:
+  wandb_project: voice-duplex-zh
+  wandb_run_name: phase1
+  metrics:
+    - name: zh_cer
+    - name: en_wer
+    - name: response_latency_ms

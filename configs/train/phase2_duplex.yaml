@@ -1,0 +1,44 @@
+experiment:
+  name: phase2_full_duplex
+  output_dir: outputs/phase2
+  seed: 2024
+model:
+  whisper_checkpoint: openai/whisper-medium
+  connector_checkpoint: outputs/phase1/connector.pt
+  controller_checkpoint: outputs/phase1/controller.pt
+  cosyvoice_checkpoint: cosvoice/cosyvoice2-0.5b
+llm:
+  checkpoint: Qwen/Qwen2.5-7B-Instruct
+  lora_checkpoint: outputs/phase1/lora
+  max_length: 16384
+trainer:
+  precision: bf16
+  batch_size: 8
+  grad_accumulation: 16
+  lr_lora: 5.0e-5
+  lr_connector: 2.0e-5
+  lr_controller: 1.0e-4
+  lr_duplex_head: 1.0e-4
+  weight_decay: 0.01
+  warmup_ratio: 0.05
+  max_steps: 24000
+  gradient_checkpointing: true
+loss:
+  ce_weight: 0.8
+  ctc_weight: 0.4
+  dtw_weight: 0.4
+  overlap_weight: 0.3
+  prosody_weight: 0.2
+  rvq_weight: 0.2
+data:
+  mixed_config: configs/data/mixed_cs.yaml
+  overlap_manifest: data/manifests/s2s_sft.jsonl
+  duplex_events_manifest: data/manifests/duplex_events.jsonl
+  num_workers: 16
+monitoring:
+  wandb_project: voice-duplex-zh
+  wandb_run_name: phase2
+  metrics:
+    - name: barge_in_success
+    - name: overlap_penalty
+    - name: duplex_latency_ms

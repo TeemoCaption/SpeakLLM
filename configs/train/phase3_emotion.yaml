@@ -1,0 +1,43 @@
+experiment:
+  name: phase3_emotion_prosody
+  output_dir: outputs/phase3
+  seed: 2024
+model:
+  whisper_checkpoint: openai/whisper-medium
+  connector_checkpoint: outputs/phase2/connector.pt
+  controller_checkpoint: outputs/phase2/controller.pt
+  cosyvoice_checkpoint: cosvoice/cosyvoice2-0.5b
+  voila_tokenizer: maitrix-org/Voila-Tokenizer
+llm:
+  checkpoint: Qwen/Qwen2.5-7B-Instruct
+  lora_checkpoint: outputs/phase2/lora
+  max_length: 16384
+trainer:
+  precision: bf16
+  batch_size: 6
+  grad_accumulation: 16
+  lr_lora: 3.0e-5
+  lr_connector: 1.0e-5
+  lr_controller: 5.0e-5
+  lr_prosody_head: 5.0e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.05
+  max_steps: 18000
+  gradient_checkpointing: true
+loss:
+  flow_weight: 0.5
+  rvq_weight: 0.3
+  prosody_weight: 0.2
+  speaker_cls_weight: 0.1
+data:
+  tts_config: configs/data/tts_zh.yaml
+  emotion_manifest: data/manifests/tts_emotion.jsonl
+  speaker_balanced: true
+  num_workers: 12
+monitoring:
+  wandb_project: voice-duplex-zh
+  wandb_run_name: phase3
+  metrics:
+    - name: mos_pred
+    - name: tone_rmse
+    - name: speaker_eer

@@ -1,0 +1,16 @@
+name: voice-duplex-zh
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pytorch=2.2
+  - pytorch-cuda=12.1
+  - torchaudio=2.2
+  - cudatoolkit=12.1
+  - pip
+  - sox
+  - ffmpeg
+  - pip:
+      - -e ..

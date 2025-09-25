@@ -1,0 +1,45 @@
+seed: 314
+sample_rate: 16000
+language_ratio:
+  zh: 0.5
+  en: 0.3
+  yue: 0.1
+  mixed: 0.1
+sources:
+  - name: cs_dialogue
+    dataset: BAAI/CS-Dialogue
+    split: train
+    streaming: false
+    tags:
+      scenario: dialogue
+    weight: 0.35
+  - name: covost2_bidirectional
+    dataset: facebook/covost2
+    config: zh-CN_en
+    pair: en_zh-CN
+    split: train
+    streaming: false
+    weight: 0.20
+  - name: fleurs_all
+    dataset: google/fleurs
+    config: all
+    split: train
+    streaming: true
+    weight: 0.15
+  - name: voiceassistant_zh
+    dataset: gpt-omni/VoiceAssistant-400K
+    split: train
+    streaming: true
+    filter:
+      locale: zh
+    weight: 0.15
+  - name: llasm_audio_instructions
+    dataset: LinkSoul/LLaSM-Audio-Instructions
+    split: train
+    streaming: false
+    weight: 0.15
+text_tags:
+  language_token: true
+  tone_token: true
+  speaker_role: true
+output_manifest: data/manifests/mixed_cs.jsonl

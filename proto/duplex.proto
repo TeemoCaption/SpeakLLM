@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package voice.duplex;
+
+service DuplexService {
+  rpc Stream(stream DuplexRequest) returns (stream DuplexResponse);
+}
+
+message DuplexRequest {
+  bytes audio_chunk = 1;
+  int32 sample_rate = 2;
+}
+
+message DuplexResponse {
+  bytes audio_chunk = 1;
+  string transcript = 2;
+  string controller_action = 3;
+}

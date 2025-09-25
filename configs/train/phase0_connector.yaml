@@ -1,0 +1,47 @@
+experiment:
+  name: phase0_whisper_connector
+  output_dir: outputs/phase0
+  seed: 2024
+model:
+  whisper_checkpoint: openai/whisper-medium
+  connector_hidden: 384
+  connector_heads: 8
+  connector_layers: 2
+  downsample_ratio: 3
+  dropout: 0.1
+  qformer_intermediate: 1024
+  controller_hidden: 256
+llm:
+  checkpoint: Qwen/Qwen2.5-7B-Instruct
+  lora_r: 0
+  max_length: 4096
+  freeze: true
+trainer:
+  precision: bf16
+  batch_size: 32
+  grad_accumulation: 4
+  lr_connector: 1.0e-4
+  lr_heads: 1.0e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  max_steps: 12000
+  grad_clip: 1.0
+  log_interval: 50
+  eval_interval: 1000
+loss:
+  kl_weight: 1.0
+  ctc_weight: 0.7
+  dtw_weight: 0.3
+  roundtrip_weight: 0.2
+data:
+  config_path: configs/data/asr_zh.yaml
+  manifest_path: data/manifests/asr_train.jsonl
+  num_workers: 8
+  streaming_prefetch: 4
+monitoring:
+  wandb_project: voice-duplex-zh
+  wandb_run_name: phase0
+  metrics:
+    - name: kl_div
+    - name: alignment_ctc
+    - name: latency_ms
