@@ -60,58 +60,6 @@
     └── duplex.proto
 ```
 
-## 快速開始
-- 建立 Conda 環境：
-  ```bash
-  conda env create -f env/environment.yml && conda activate voice-duplex-zh
-  ```
-- 或使用 Pip 安裝：
-  ```bash
-  pip install -r requirements.txt
-  ```
-- 複製環境變數樣板並填入 `HF_TOKEN` 與（若已取得）`WENETSPEECH_PASSWORD`：
-  ```bash
-  cp .env.example .env  # macOS / Linux / Git Bash
-  ```
-- PowerShell 可改用：
-  ```powershell
-  Copy-Item .env.example .env
-  ```
-- Windows CMD：
-  ```cmd
-  copy .env.example .env
-  ```
-- 驗證/快取 ASR 語料（支援 streaming，會自動呼叫官方腳本下載 WenetSpeech 實體檔案）：
-  ```bash
-  python scripts/data_download/download_asr_datasets.py --config configs/data/asr_zh.yaml
-  ```
-- 若遇到其他 gated dataset，請先至官方頁面申請權限並將 token 填入 `.env` 的 `HF_TOKEN`；若具備官方下載密碼，放入 `WENETSPEECH_PASSWORD` 即會自動使用。
-- 如需單獨重新下載 WenetSpeech，可手動執行（同樣讀取 `WENETSPEECH_PASSWORD` 或互動輸入）：
-  ```bash
-  python scripts/data_download/download_wenetspeech.py --download-dir data/wenetspeech/download --untar-dir data/wenetspeech/raw
-  ```
-- 驗證/快取 TTS 語料：
-  ```bash
-  python scripts/data_download/download_tts_datasets.py --config configs/data/tts_zh.yaml
-  ```
-- 產生訓練清單（若資料集為 streaming，會只記錄 tar 路徑與索引）：
-  ```bash
-  python scripts/prepare/build_manifests.py --config configs/data/asr_zh.yaml --output data/manifests/asr_train.jsonl
-  python scripts/prepare/build_manifests.py --config configs/data/tts_zh.yaml --output data/manifests/tts_train.jsonl
-  ```
-- （可選）產生 Voila RVQ token 清單：
-  ```bash
-  python scripts/tokenizer/extract_voila_tokens.py --manifest data/manifests/tts_train.jsonl --output data/manifests/tts_voila_codes.jsonl --checkpoint maitrix-org/Voila-Tokenizer
-  ```
-- 啟動 Phase 0 訓練：
-  ```bash
-  python scripts/training/run_phase0.py --config configs/train/phase0_connector.yaml
-  ```
-- 啟動測試伺服器：
-  ```bash
-  python -m runtime.server
-  ```
-
 ## 完整訓練流程
 1. 驗證/快取所有語料（ASR / TTS / 指令與混碼）：
    ```bash
