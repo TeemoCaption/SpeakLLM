@@ -91,7 +91,7 @@
   ```
 - 啟動 Phase 0 訓練：
   ```bash
-  bash scripts/train_phase0.sh configs/train/phase0_connector.yaml
+  python scripts/training/run_phase0.py --config configs/train/phase0_connector.yaml
   ```
 - 啟動測試伺服器：
   ```bash
@@ -115,10 +115,10 @@
    ```
 3. 進行四階段訓練（確保 `configs/train/*.yaml` 指向正確的 checkpoint 與清單）：
    ```bash
-   bash scripts/train_phase0.sh configs/train/phase0_connector.yaml
-   bash scripts/train_phase1.sh configs/train/phase1_sft.yaml
-   bash scripts/train_phase2.sh configs/train/phase2_duplex.yaml
-   bash scripts/train_phase3.sh configs/train/phase3_emotion.yaml
+   python scripts/training/run_phase0.py --config configs/train/phase0_connector.yaml
+   python scripts/training/run_phase1.py --config configs/train/phase1_sft.yaml
+   python scripts/training/run_phase2.py --config configs/train/phase2_duplex.yaml
+   python scripts/training/run_phase3.py --config configs/train/phase3_emotion.yaml
    ```
 4. 匯出推論模型與測試（可選）：
    ```bash
