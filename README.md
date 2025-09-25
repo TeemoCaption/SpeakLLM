@@ -40,20 +40,46 @@ SpeechLLM/
 ## Data Preparation
 ### 1. 下載語料 / 生成 manifest
 
-- **下載 Common Voice 並生成 manifest**：`python scripts/data_tools.py fetch-common-voice --subset zh-TW --split train --output datasets/common_voice_zh_tw && python scripts/data_tools.py make-manifest --input datasets/common_voice_zh_tw/train.jsonl --output data/manifests/common_voice_zh_tw_train.jsonl --lang zh-TW --dataset common_voice_zh_tw`
+- **下載 Common Voice 並生成 manifest**：
 
-- **下載 LibriSpeech 並生成 manifest**：`python scripts/data_tools.py fetch-librispeech --subset train-clean-100 --output datasets/librispeech && python scripts/data_tools.py make-manifest --input datasets/librispeech/train-clean-100.jsonl --output data/manifests/librispeech_train.jsonl --lang en --dataset librispeech`
+```bash
+python scripts/data_tools.py fetch-common-voice --subset zh-TW --split train --output datasets/common_voice_zh_tw && python scripts/data_tools.py make-manifest --input datasets/common_voice_zh_tw/train.jsonl --output data/manifests/common_voice_zh_tw_train.jsonl --lang zh-TW --dataset common_voice_zh_tw
+```
+
+- **下載 LibriSpeech 並生成 manifest**：
+
+```bash
+python scripts/data_tools.py fetch-librispeech --subset train-clean-100 --output datasets/librispeech && python scripts/data_tools.py make-manifest --input datasets/librispeech/train-clean-100.jsonl --output data/manifests/librispeech_train.jsonl --lang en --dataset librispeech
+```
 # AISHELL-3 / VCTK manifest 亦可使用 make-manifest 生成
 ### 2. 產生 barge-in / 重疊語音
 
-- **合成插話與重疊語音**：`python scripts/data_tools.py make-barge --foreground data/clean_speech --background data/noise_pool --output data/processed/duplex --count 10000 --snr-min 0 --snr-max 10`
+- **合成插話與重疊語音**：
+
+```bash
+python scripts/data_tools.py make-barge --foreground data/clean_speech --background data/noise_pool --output data/processed/duplex --count 10000 --snr-min 0 --snr-max 10
+```
 指令會輸出 `data/processed/duplex/wav/` 及 `barge_in.jsonl`。將生成的 manifest 路徑填入 `configs/data.yml` 中的 `duplex_synth_zh` 或 `duplex_synth_en`，即可在訓練時混入 20–30% 插話樣本。
 
 ### 3. 特徵、量化與序列化
 
-- **Whisper 對數梅爾特徵**：`python scripts/data_tools.py make-mels --manifest data/manifests/common_voice_zh_tw_train.jsonl --output_dir data/processed/mels/common_voice_zh_tw`
-- **Voila 量化**：`python scripts/data_tools.py make-codes --manifest data/manifests/common_voice_zh_tw_train.jsonl --tokenizer tokenizer/voila_tokenizer --output_dir data/processed/voila_codes/common_voice_zh_tw`
-- **序列組裝**：`python scripts/data_tools.py make-seq --manifest data/manifests/common_voice_zh_tw_train.jsonl --codes_dir data/processed/voila_codes/common_voice_zh_tw --output data/processed/sequences/common_voice_zh_tw.jsonl`
+- **Whisper 對數梅爾特徵**：
+
+```bash
+python scripts/data_tools.py make-mels --manifest data/manifests/common_voice_zh_tw_train.jsonl --output_dir data/processed/mels/common_voice_zh_tw
+```
+
+- **Voila 量化**：
+
+```bash
+python scripts/data_tools.py make-codes --manifest data/manifests/common_voice_zh_tw_train.jsonl --tokenizer tokenizer/voila_tokenizer --output_dir data/processed/voila_codes/common_voice_zh_tw
+```
+
+- **序列組裝**：
+
+```bash
+python scripts/data_tools.py make-seq --manifest data/manifests/common_voice_zh_tw_train.jsonl --codes_dir data/processed/voila_codes/common_voice_zh_tw --output data/processed/sequences/common_voice_zh_tw.jsonl
+```
 
 其他語料（如 `librispeech_train.jsonl`、`AISHELL-3`、`VCTK`）依樣操作，將輸出路徑填入 `configs/train.yml` 對應階段即可。
 
@@ -78,7 +104,11 @@ SpeechLLM/
 
 本專案提供腳本 `scripts/synth_cosyvoice2.py`，可利用 [FunAudioLLM/CosyVoice2-0.5B](https://huggingface.co/FunAudioLLM/CosyVoice2-0.5B) 產生中英雙語語音。
 
-- **批次合成中英語音**：`python scripts/synth_cosyvoice2.py --output data/synthetic/cosyvoice2 --zh-ref-dir /path/to/AISHELL-3/wav --en-ref-dir /path/to/VCTK/wav --zh-texts resources/zh_prompts.txt --en-texts resources/en_prompts.txt --zh-count 3000 --en-count 3000`
+- **批次合成中英語音**：
+
+```bash
+python scripts/synth_cosyvoice2.py --output data/synthetic/cosyvoice2 --zh-ref-dir /path/to/AISHELL-3/wav --en-ref-dir /path/to/VCTK/wav --zh-texts resources/zh_prompts.txt --en-texts resources/en_prompts.txt --zh-count 3000 --en-count 3000
+```
 
 - **參考語者**：`--zh-ref-dir`、`--en-ref-dir` 指向現有資料集 wav 目錄（會隨機抽樣）。
 - **語句**：可透過 `--zh-texts` / `--en-texts` 提供自備腳本，或改以 `--hf-dataset` 連結 Common Voice 等 HF corpus。
