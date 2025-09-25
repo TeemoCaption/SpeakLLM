@@ -85,6 +85,11 @@
   ```bash
   python scripts/data_download/download_asr_datasets.py --config configs/data/asr_zh.yaml
   ```
+- 若遇到 gated dataset（如 WenetSpeech），請先至其官方頁面申請權限並將 token 寫入 `.env` 的 `HF_TOKEN`，或依官方指示使用 `utils/download_wenetspeech.sh` 下載後再更新 manifests。
+- 也可以透過封裝好的指令下載 WenetSpeech（需取得密碼）：
+  ```bash
+  python scripts/data_download/download_wenetspeech.py --download-dir data/wenetspeech/download --untar-dir data/wenetspeech/raw
+  ```
 - 驗證/快取 TTS 語料：
   ```bash
   python scripts/data_download/download_tts_datasets.py --config configs/data/tts_zh.yaml

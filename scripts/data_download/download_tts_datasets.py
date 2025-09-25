@@ -5,7 +5,10 @@ from pathlib import Path
 
 import typer
 
+import os
+
 from datasets import load_dataset
+from huggingface_hub import login
 
 from common.utils import load_yaml
 
@@ -14,6 +17,12 @@ app = typer.Typer()
 
 @app.command()
 def main(config: Path = typer.Option(..., exists=True)) -> None:
+    token = os.getenv("HF_TOKEN")
+    if token:
+        try:
+            login(token=token, add_to_git_credential=False)
+        except Exception:
+            pass
     cfg = load_yaml(config)
     for source in cfg.get("sources", []):
         name = source["name"]
@@ -28,6 +37,8 @@ def main(config: Path = typer.Option(..., exists=True)) -> None:
         }
         if source.get("config"):
             kwargs["name"] = source["config"]
+        if token:
+            kwargs["token"] = token
         typer.echo(f"Prefetching {dataset}:{split} (streaming={streaming})")
         ds = load_dataset(dataset, **kwargs)
         if not streaming:
