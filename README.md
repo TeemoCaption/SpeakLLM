@@ -81,12 +81,12 @@
   ```cmd
   copy .env.example .env
   ```
-- 驗證/快取 ASR 語料（支援 streaming） ：
+- 驗證/快取 ASR 語料（支援 streaming，會自動呼叫官方腳本下載 WenetSpeech 實體檔案）：
   ```bash
   python scripts/data_download/download_asr_datasets.py --config configs/data/asr_zh.yaml
   ```
-- 若遇到 gated dataset（如 WenetSpeech），請先至其官方頁面申請權限並將 token 寫入 `.env` 的 `HF_TOKEN`；若官網提供下載密碼，可將其放入 `WENETSPEECH_PASSWORD`，或改用官方腳本。
-- 也可以透過封裝好的指令下載 WenetSpeech（讀取 `WENETSPEECH_PASSWORD` 或互動輸入）：
+- 若遇到其他 gated dataset，請先至官方頁面申請權限並將 token 填入 `.env` 的 `HF_TOKEN`；若具備官方下載密碼，放入 `WENETSPEECH_PASSWORD` 即會自動使用。
+- 如需單獨重新下載 WenetSpeech，可手動執行（同樣讀取 `WENETSPEECH_PASSWORD` 或互動輸入）：
   ```bash
   python scripts/data_download/download_wenetspeech.py --download-dir data/wenetspeech/download --untar-dir data/wenetspeech/raw
   ```
