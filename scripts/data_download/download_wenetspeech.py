@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 import subprocess
 from pathlib import Path
+from typing import Optional
 
 import typer
 
@@ -21,15 +22,23 @@ def _ensure_repo(repo_dir: Path) -> None:
         subprocess.run(["git", "clone", REPO_URL, str(repo_dir)], check=True)
 
 
+def _resolve_password(value: Optional[str]) -> str:
+    pwd = value or os.getenv("WENETSPEECH_PASSWORD")
+    if not pwd:
+        pwd = typer.prompt("Enter WenetSpeech password", hide_input=True)
+    return pwd.strip()
+
+
 @app.command()
 def main(
-    password: str = typer.Option(..., prompt=True, hide_input=True),
+    password: Optional[str] = typer.Option(None, help="Password issued by the WenetSpeech team"),
     repo_path: Path = typer.Option(Path("external/WenetSpeech"), help="Where to clone/update the official repo"),
     download_dir: Path = typer.Option(Path("data/wenetspeech/download"), help="Where to store encrypted archives"),
     untar_dir: Path = typer.Option(Path("data/wenetspeech/raw"), help="Where to extract the dataset"),
     modelscope: bool = typer.Option(False, help="Use ModelScope mirrors instead of Tencent"),
     stage: int = typer.Option(0, help="Forward to download script stage argument"),
 ) -> None:
+    password = _resolve_password(password)
     repo_path = repo_path.expanduser().resolve()
     download_dir = download_dir.expanduser().resolve()
     untar_dir = untar_dir.expanduser().resolve()
@@ -42,7 +51,7 @@ def main(
 
     safebox = repo_path / "SAFEBOX"
     safebox.mkdir(parents=True, exist_ok=True)
-    (safebox / "password").write_text(password.strip(), encoding="utf-8")
+    (safebox / "password").write_text(password, encoding="utf-8")
     typer.echo(f"Password stored at {safebox / 'password'}")
 
     env = os.environ.copy()
@@ -59,7 +68,9 @@ def main(
     ]
     typer.echo(f"Running {' '.join(cmd)}")
     subprocess.run(cmd, cwd=repo_path, check=True, env=env)
-    typer.echo("WenetSpeech download finished. Update configs/data/asr_zh.yaml to point manifests to the extracted path if needed.")
+    typer.echo(
+        "WenetSpeech download finished. Update configs/data/asr_zh.yaml to reference the extracted path if needed."
+    )
 
 
 if __name__ == "__main__":

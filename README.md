@@ -69,7 +69,7 @@
   ```bash
   pip install -r requirements.txt
   ```
-- 複製環境變數樣板並填入 `HF_TOKEN`：
+- 複製環境變數樣板並填入 `HF_TOKEN` 與（若已取得）`WENETSPEECH_PASSWORD`：
   ```bash
   cp .env.example .env  # macOS / Linux / Git Bash
   ```
@@ -85,8 +85,8 @@
   ```bash
   python scripts/data_download/download_asr_datasets.py --config configs/data/asr_zh.yaml
   ```
-- 若遇到 gated dataset（如 WenetSpeech），請先至其官方頁面申請權限並將 token 寫入 `.env` 的 `HF_TOKEN`，或依官方指示使用 `utils/download_wenetspeech.sh` 下載後再更新 manifests。
-- 也可以透過封裝好的指令下載 WenetSpeech（需取得密碼）：
+- 若遇到 gated dataset（如 WenetSpeech），請先至其官方頁面申請權限並將 token 寫入 `.env` 的 `HF_TOKEN`；若官網提供下載密碼，可將其放入 `WENETSPEECH_PASSWORD`，或改用官方腳本。
+- 也可以透過封裝好的指令下載 WenetSpeech（讀取 `WENETSPEECH_PASSWORD` 或互動輸入）：
   ```bash
   python scripts/data_download/download_wenetspeech.py --download-dir data/wenetspeech/download --untar-dir data/wenetspeech/raw
   ```
