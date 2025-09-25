@@ -1,18 +1,44 @@
 """Download ASR datasets listed in the YAML config."""
 from __future__ import annotations
 
+import os
 from pathlib import Path
+from typing import Any
 
 import typer
-
-import os
 
 from datasets import load_dataset
 from huggingface_hub import login
 
 from common.utils import load_yaml
 
+try:
+    import download_wenetspeech
+except ImportError:  # pragma: no cover
+    download_wenetspeech = None
+
 app = typer.Typer()
+
+def _handle_offline_download(source: dict[str, Any]) -> None:
+    offline = source.get("offline_download")
+    if not offline:
+        return
+    script = offline.get("script")
+    if script != "wenetspeech":
+        typer.echo(f"Unknown offline download script: {script}")
+        return
+    if download_wenetspeech is None:
+        typer.echo("WenetSpeech download helper unavailable; skipping offline download.")
+        return
+    typer.echo("Starting official WenetSpeech download (large download, ensure 500G free space)...")
+    download_wenetspeech.main(
+        password=offline.get("password"),
+        repo_path=Path(offline.get("repo_path", "external/WenetSpeech")),
+        download_dir=Path(offline.get("download_dir", "data/wenetspeech/download")),
+        untar_dir=Path(offline.get("extract_dir", "data/wenetspeech/raw")),
+        modelscope=bool(offline.get("modelscope", False)),
+        stage=int(offline.get("stage", 0)),
+    )
 
 
 @app.command()
@@ -31,6 +57,7 @@ def main(config: Path = typer.Option(..., exists=True, help="Path to data YAML c
         split = source.get("split", "train")
         config_name = source.get("config")
         streaming = source.get("streaming", False)
+        _handle_offline_download(source)
         kwargs = {
             "split": split,
             "streaming": streaming,

@@ -14,6 +14,12 @@ sources:
     split: train
     streaming: true
     weight: 0.45
+    offline_download:
+      script: wenetspeech
+      repo_path: external/WenetSpeech
+      download_dir: data/wenetspeech/download
+      extract_dir: data/wenetspeech/raw
+      modelscope: false
   - name: aishell_1
     dataset: AISHELL/AISHELL-1
     split: train
