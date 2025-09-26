@@ -9,6 +9,9 @@ model:
   cosyvoice_checkpoint: cosvoice/cosyvoice2-0.5b
 llm:
   checkpoint: Qwen/Qwen2.5-7B-Instruct
+  adapters:
+    - zh
+    - en
   lora_checkpoint: outputs/phase1/lora
   max_length: 16384
 trainer:
@@ -35,6 +38,10 @@ data:
   overlap_manifest: data/manifests/s2s_sft.jsonl
   duplex_events_manifest: data/manifests/duplex_events.jsonl
   num_workers: 16
+sampler:
+  lang_mix:
+    zh: 0.82
+    en: 0.18
 monitoring:
   wandb_project: voice-duplex-zh
   wandb_run_name: phase2

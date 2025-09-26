@@ -1,37 +1,40 @@
 seed: 42
 sample_rate: 24000
+text_normalizer:
+  name: opencc
+  config: s2twp
 prosody_features:
   - pitch
   - energy
   - duration
   - tone_tag
 sources:
-  - name: aishell_3
-    dataset: AISHELL/AISHELL-3
-    split: train
-    speaker_meta: true
-    weight: 0.25
   - name: wenetspeech4tts_premium
     dataset: Wenetspeech4TTS/WenetSpeech4TTS
     config: premium
     split: train
     streaming: false
-    weight: 0.35
-  - name: csemotions
-    dataset: AIDC-AI/CSEMOTIONS
+    weight: 0.50
+  - name: aishell3
+    dataset: AISHELL/AISHELL-3
     split: train
-    emotion_labels: true
-    weight: 0.10
+    streaming: false
+    weight: 0.30
   - name: libritts_r
     dataset: mythicinfinity/libritts_r
     split: train
     streaming: true
-    weight: 0.20
+    weight: 0.12
   - name: vctk
     dataset: badayvedat/VCTK
     split: train
     streaming: true
-    weight: 0.10
+    weight: 0.03
+  - name: ljspeech
+    dataset: keithito/lj_speech
+    split: train
+    streaming: false
+    weight: 0.05
 alignment:
   mel_hop_ms: 10
   syllable_reference: data/manifests/asr_syllable_alignment.jsonl
@@ -40,3 +43,9 @@ alignment:
 cache:
   features_dir: data/local_cache/tts_features
   reuse_existing: true
+emotion_sources:
+  - name: csemotions
+    dataset: AIDC-AI/CSEMOTIONS
+    split: train
+    streaming: false
+    weight: 1.0

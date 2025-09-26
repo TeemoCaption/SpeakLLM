@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import torch
-from transformers import WhisperFeatureExtractor, WhisperForConditionalGeneration
+from transformers import WhisperFeatureExtractor, WhisperForConditionalGeneration, WhisperTokenizer
 
 
 @dataclass
@@ -24,6 +24,7 @@ class WhisperEncoder:
         self.encoder.requires_grad_(False)
         self.model.to(self.config.device, dtype=self.config.dtype)
         self.feature_extractor = WhisperFeatureExtractor.from_pretrained(self.config.checkpoint)
+        self.tokenizer = WhisperTokenizer.from_pretrained(self.config.checkpoint)
 
     @torch.inference_mode()
     def encode(self, audio: torch.Tensor, sampling_rate: int) -> torch.Tensor:
@@ -41,3 +42,22 @@ class WhisperEncoder:
             encoded = self.encode(segment, sampling_rate)
             chunks.append(encoded)
         return torch.cat(chunks, dim=0)
+
+    @torch.inference_mode()
+    def transcribe(self, audio: torch.Tensor, sampling_rate: int) -> tuple[str, str | None]:
+        features = self.feature_extractor(audio, sampling_rate=sampling_rate, return_tensors="pt")
+        input_features = features.input_features.to(self.config.device, dtype=self.config.dtype)
+        forced_decoder_ids = self.model.generation_config.forced_decoder_ids
+        self.model.generation_config.forced_decoder_ids = None
+        try:
+            generated_ids = self.model.generate(input_features=input_features)
+        finally:
+            self.model.generation_config.forced_decoder_ids = forced_decoder_ids
+        sequence = generated_ids[0]
+        text = self.tokenizer.decode(sequence, skip_special_tokens=True).strip()
+        lid: str | None = None
+        if sequence.numel() > 1:
+            token = self.tokenizer.convert_ids_to_tokens(int(sequence[1]))
+            if isinstance(token, str) and token.startswith("<|") and token.endswith("|>"):
+                lid = token[2:-2]
+        return text, lid

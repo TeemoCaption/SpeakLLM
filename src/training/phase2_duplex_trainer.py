@@ -15,6 +15,7 @@ from common.metrics.overlap_consistency import compute_overlap_penalty
 from llm.policy.duplex_controller import DuplexController, DuplexControllerConfig
 from llm.qwen.load_qwen import QwenLoader, QwenLoadConfig
 from tokenizer.voila_tokenizer import VoilaConfig, VoilaTokenizer
+from peft import PeftModel
 
 
 @dataclass
@@ -47,11 +48,34 @@ class Phase2Trainer:
         self.opt = AdamW(params, lr=config.lr, weight_decay=config.weight_decay)
         self.ce_loss = nn.CrossEntropyLoss(ignore_index=-100)
         self.global_step = 0
+        self.adapters = tuple(config.qwen.adapters) if config.qwen.adapters else ("default",)
+        self.default_adapter = self.adapters[0]
+        if isinstance(self.model, PeftModel):
+            self.model.set_adapter(self.default_adapter)
+
+    def _select_adapter(self, batch: Dict[str, torch.Tensor]) -> None:
+        if not isinstance(self.model, PeftModel):
+            return
+        lang = batch.get("lang")
+        chosen = None
+        if isinstance(lang, torch.Tensor):
+            if lang.ndim == 0:
+                chosen = str(lang.item())
+            elif lang.numel() > 0:
+                chosen = str(lang.flatten()[0].item())
+        elif isinstance(lang, (list, tuple)) and lang:
+            chosen = str(lang[0])
+        elif lang is not None:
+            chosen = str(lang)
+        if chosen not in self.adapters:
+            chosen = self.default_adapter
+        self.model.set_adapter(chosen)
 
     def train_step(self, batch: Dict[str, torch.Tensor]) -> Dict[str, float]:
         self.model.train()
         self.connector.train()
         self.controller.train()
+        self._select_adapter(batch)
         hidden = self.connector(batch["audio_features"].to(self.config.device))
         outputs = self.model(inputs_embeds=hidden, labels=batch["labels"].to(self.config.device))
         ce = outputs.loss

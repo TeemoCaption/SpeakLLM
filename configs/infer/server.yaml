@@ -14,6 +14,9 @@ models:
   duplex_controller: outputs/phase2/controller.pt
   cosyvoice_checkpoint: cosvoice/cosyvoice2-0.5b
   voila_tokenizer: maitrix-org/Voila-Tokenizer
+  qwen_adapter_paths:
+    zh: checkpoints/lora_zh
+    en: checkpoints/lora_en
 runtime:
   device: cuda:0
   dtype: bfloat16
@@ -25,3 +28,10 @@ logging:
   level: INFO
   use_wandb: false
   event_log: logs/duplex_events.log
+lid_head:
+  languages: ["zh", "en"]
+  ckpt_path: checkpoints/lid_head_zh_en.pt
+  lid_window_ms: 800
+  lid_stride_ms: 300
+  hysteresis_threshold: 2
+  min_confidence: 0.6

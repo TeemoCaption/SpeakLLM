@@ -1,0 +1,16 @@
+dev_sets:
+  - name: dev_zh_tw
+    dataset: google/fleurs
+    config: zh_tw
+    split: validation
+  - name: test_zh_tw
+    dataset: mozilla-foundation/common_voice_17_0
+    config: zh-TW
+    split: test
+  - name: test_en
+    dataset: openslr/librispeech_asr
+    config: clean
+    split: test.clean
+  - name: test_cs
+    dataset: BAAI/CS-Dialogue
+    split: test

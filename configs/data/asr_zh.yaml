@@ -1,59 +1,72 @@
 seed: 17
 sample_rate: 16000
 max_duration_sec: 30
-text_normalizer: opencc
+text_normalizer:
+  name: opencc
+  config: s2twp
 lang_distribution:
-  zh_cn: 0.55
-  zh_tw: 0.20
-  yue: 0.10
-  en: 0.15
+  zh_tw: 0.55
+  zh_cn: 0.20
+  yue: 0.08
+  en: 0.17
 sources:
-  - name: wenetspeech_l_fixed
-    dataset: wenet-e2e/wenetspeech
-    config: L_fixed
+  - name: common_voice_zh_tw
+    dataset: mozilla-foundation/common_voice_17_0
+    config: zh-TW
     split: train
     streaming: true
-    weight: 0.45
-    offline_download:
-      script: wenetspeech
-      repo_path: external/WenetSpeech
-      download_dir: data/wenetspeech/download
-      extract_dir: data/wenetspeech/raw
-      modelscope: false
-  - name: aishell_1
-    dataset: AISHELL/AISHELL-1
-    split: train
-    streaming: true
-    weight: 0.10
+    weight: 0.25
   - name: fleurs_zh_tw
     dataset: google/fleurs
     config: zh_tw
     split: train
     streaming: true
     weight: 0.10
-  - name: fleurs_yue
-    dataset: google/fleurs
-    config: yue_hk
+  - name: wenetspeech_l_fixed
+    dataset: wenet-e2e/wenetspeech
+    config: L_fixed
     split: train
     streaming: true
+    weight: 0.25
+    offline_download:
+      script: wenetspeech
+      repo_path: external/WenetSpeech
+      download_dir: data/wenetspeech/download
+      extract_dir: data/wenetspeech/raw
+      modelscope: false
+  - name: aishell1
+    dataset: AISHELL/AISHELL-1
+    split: train
+    streaming: false
+    weight: 0.10
+  - name: wenetspeech_yue
+    dataset: ASLP-lab/WenetSpeech-Yue
+    split: train
+    streaming: false
     weight: 0.05
-  - name: common_voice_zh_tw
+  - name: librispeech_clean100
+    dataset: openslr/librispeech_asr
+    config: clean
+    split: train.100
+    streaming: false
+    weight: 0.06
+  - name: tedlium3
+    dataset: LIUM/tedlium
+    split: train
+    streaming: false
+    weight: 0.04
+  - name: voxpopuli_en
+    dataset: facebook/voxpopuli
+    config: en
+    split: train
+    streaming: false
+    weight: 0.03
+  - name: cv_en
     dataset: mozilla-foundation/common_voice_17_0
-    config: zh-TW
+    config: en
     split: train
     streaming: true
-    weight: 0.10
-  - name: covost2_zh_en
-    dataset: facebook/covost2
-    config: zh-CN_en
-    split: train
-    streaming: false
-    weight: 0.05
-  - name: cs_dialogue
-    dataset: BAAI/CS-Dialogue
-    split: train
-    streaming: false
-    weight: 0.10
+    weight: 0.04
 augmentations:
   noise:
     dataset: musan

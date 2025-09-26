@@ -1,0 +1,36 @@
+text_normalizer:
+  name: opencc
+  config: s2twp
+sources:
+  - name: realtalk_cn
+    dataset: BAAI/RealTalk-CN
+    split: train
+    streaming: false
+    weight: 0.35
+  - name: cs_dialogue
+    dataset: BAAI/CS-Dialogue
+    split: train
+    streaming: false
+    weight: 0.25
+  - name: covost2_zh_en
+    dataset: facebook/covost2
+    config: zh-CN_en
+    split: train
+    streaming: true
+    weight: 0.10
+  - name: covost2_en_zh
+    dataset: facebook/covost2
+    config: en_zh-CN
+    split: train
+    streaming: true
+    weight: 0.05
+  - name: llasm_audio
+    dataset: LinkSoul/LLaSM-Audio-Instructions
+    split: train
+    streaming: false
+    weight: 0.10
+  - name: voiceassistant400k
+    dataset: gpt-omni/VoiceAssistant-400K
+    split: train
+    streaming: true
+    weight: 0.15

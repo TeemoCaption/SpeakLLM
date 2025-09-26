@@ -1,0 +1,14 @@
+mixing:
+  overlap_ratio: [0.15, 0.50]
+  snr_db: [0, 10]
+  ducking_db: 6
+  min_turn_ms: 600
+sources:
+  - ref: sft_duplex.yaml:realtalk_cn
+    weight: 0.40
+  - ref: sft_duplex.yaml:cs_dialogue
+    weight: 0.30
+  - ref: sft_duplex.yaml:voiceassistant400k
+    weight: 0.20
+  - ref: asr_zh.yaml:fleurs_zh_tw
+    weight: 0.10

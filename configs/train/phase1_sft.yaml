@@ -14,8 +14,9 @@ llm:
   target_modules:
     - q_proj
     - v_proj
-    - k_proj
-    - o_proj
+  adapters:
+    - zh
+    - en
   max_length: 8192
 trainer:
   precision: bf16
@@ -38,6 +39,10 @@ data:
   manifest_text: data/manifests/sft_text_train.jsonl
   manifest_audio: data/manifests/asr_train.jsonl
   num_workers: 12
+sampler:
+  lang_mix:
+    zh: 0.82
+    en: 0.18
 monitoring:
   wandb_project: voice-duplex-zh
   wandb_run_name: phase1

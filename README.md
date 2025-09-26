@@ -95,6 +95,34 @@
      pytest tests
      ```
 
+## 推論前的 LID 頭訓練與雙 LoRA 設定
+- **建立與訓練 LID 頭**
+  ```bash
+  mkdir -p checkpoints
+  python -m src.training.train_lid_head
+  ```
+  指令會在 `checkpoints/lid_head_zh_en.pt` 輸出語言辨識線性層權重。
+- **準備 LoRA 與推論設定**
+  ```yaml
+  models:
+    qwen_adapter_paths:
+      zh: checkpoints/lora_zh
+      en: checkpoints/lora_en
+  lid_head:
+    languages: ["zh","en"]
+    ckpt_path: "checkpoints/lid_head_zh_en.pt"
+    lid_window_ms: 800
+    lid_stride_ms: 300
+    hysteresis_threshold: 2
+    min_confidence: 0.6
+  ```
+  將上述片段加入 `configs/infer/server.yaml`，並確認 `checkpoints/lora_zh`、`checkpoints/lora_en` 皆已存在。
+- **啟動全雙工推論伺服器**
+  ```bash
+  python -m src.runtime.server --config configs/infer/server.yaml
+  ```
+  流程啟動後，系統會依 LID 頭輸出自動切換 `zh`／`en` LoRA，無需額外手動操作。
+
 ## 文件導覽
 - **`docs/architecture.md`**：系統總體架構與模組說明。
 - **`docs/research_modules.md`**：Dual-Scale、Tone-Aware、Overlap-Aware、code-switch 等新方法詳述。

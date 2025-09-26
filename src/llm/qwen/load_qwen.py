@@ -1,8 +1,8 @@
 """Utilities for loading Qwen 7B with optional LoRA adapters."""
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import Dict, Optional, Tuple
 
 import torch
 from peft import LoraConfig, PeftModel, get_peft_model
@@ -18,7 +18,9 @@ class QwenLoadConfig:
     lora_r: int = 0
     lora_alpha: int = 16
     lora_dropout: float = 0.05
-    target_modules: tuple[str, ...] = ("q_proj", "k_proj", "v_proj", "o_proj")
+    target_modules: tuple[str, ...] = ("q_proj", "v_proj")
+    adapters: tuple[str, ...] = ()
+    adapter_paths: Dict[str, str] = field(default_factory=dict)
 
 
 class QwenLoader:
@@ -34,7 +36,19 @@ class QwenLoader:
             device_map="auto",
             trust_remote_code=True,
         )
-        if self.config.lora_r > 0:
+        adapter_items: Tuple[Tuple[str, str], ...] = tuple(self.config.adapter_paths.items())
+        if adapter_items:
+            primary_name, primary_path = adapter_items[0]
+            self.model = PeftModel.from_pretrained(self.model, primary_path, adapter_name=primary_name)
+            for name, path in adapter_items[1:]:
+                self.model.load_adapter(path, adapter_name=name)
+            if hasattr(self.model, "enable_adapter_layers"):
+                self.model.enable_adapter_layers()
+            for name, _ in adapter_items:
+                self.model.set_adapter(name)
+            self.model.set_adapter(primary_name)
+            self.config.adapters = tuple(name for name, _ in adapter_items)
+        elif self.config.lora_r > 0:
             lora = LoraConfig(
                 r=self.config.lora_r,
                 lora_alpha=self.config.lora_alpha,
@@ -43,14 +57,26 @@ class QwenLoader:
                 bias="none",
                 task_type="CAUSAL_LM",
             )
-            self.model = get_peft_model(self.model, lora)
+            primary_adapter = self.config.adapters[0] if self.config.adapters else "default"
+            self.model = get_peft_model(self.model, lora, adapter_name=primary_adapter)
+            for extra_adapter in self.config.adapters[1:]:
+                self.model.add_adapter(extra_adapter, lora)
+            self.model.set_adapter(primary_adapter)
+        if isinstance(self.model, PeftModel) and hasattr(self.model, "enable_adapter_layers"):
+            self.model.enable_adapter_layers()
+            if self.config.adapters:
+                for name in self.config.adapters:
+                    self.model.set_adapter(name)
+                self.model.set_adapter(self.config.adapters[0])
         self.model.eval()
 
-    def load_lora_weights(self, lora_path: str) -> None:
+    def load_lora_weights(self, lora_path: str, adapters: Optional[tuple[str, ...]] = None) -> None:
         if not isinstance(self.model, PeftModel):
             raise RuntimeError("Model was not initialized with LoRA")
-        self.model.load_adapter(lora_path, adapter_name="default")
-        self.model.set_adapter("default")
+        names = adapters or (self.config.adapters if self.config.adapters else ("default",))
+        for adapter_name in names:
+            self.model.load_adapter(lora_path, adapter_name=adapter_name)
+        self.model.set_adapter(names[0])
 
     @torch.inference_mode()
     def generate(self, prompt_ids: torch.Tensor, **kwargs) -> torch.Tensor:
