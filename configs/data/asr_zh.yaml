@@ -12,7 +12,7 @@ lang_distribution:
 sources:
   - name: common_voice_zh_tw
     dataset: mozilla-foundation/common_voice_17_0
-    config: zh-TW
+    config: tw
     split: train
     streaming: true
     weight: 0.25

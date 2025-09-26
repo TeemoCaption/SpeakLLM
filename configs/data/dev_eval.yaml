@@ -5,7 +5,7 @@ dev_sets:
     split: validation
   - name: test_zh_tw
     dataset: mozilla-foundation/common_voice_17_0
-    config: zh-TW
+    config: tw
     split: test
   - name: test_en
     dataset: openslr/librispeech_asr
