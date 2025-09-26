@@ -10,5 +10,5 @@ sources:
     weight: 0.30
   - ref: sft_duplex.yaml:voiceassistant400k
     weight: 0.20
-  - ref: asr_zh.yaml:fleurs_zh_tw
+  - ref: asr_zh.yaml:fleurs_cmn_tw
     weight: 0.10

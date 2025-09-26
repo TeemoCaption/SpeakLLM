@@ -12,13 +12,13 @@ lang_distribution:
 sources:
   - name: common_voice_zh_tw
     dataset: mozilla-foundation/common_voice_17_0
-    config: tw
+    config: zh-TW
     split: train
     streaming: true
     weight: 0.25
-  - name: fleurs_zh_tw
+  - name: fleurs_cmn_tw
     dataset: google/fleurs
-    config: zh_tw
+    config: cmn_hans_cn
     split: train
     streaming: true
     weight: 0.10
