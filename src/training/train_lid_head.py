@@ -29,7 +29,7 @@ def _resample_waveform(sample: dict) -> torch.Tensor:
 
 def _infinite_stream(name: str, config: str, split: str, label: int) -> Generator[Tuple[torch.Tensor, int], None, None]:
     while True:
-        dataset = load_dataset(name, config, split=split, streaming=True)
+        dataset = load_dataset(name, config, split=split, streaming=True, trust_remote_code=True)
         for sample in dataset:
             yield _resample_waveform(sample), label
 
