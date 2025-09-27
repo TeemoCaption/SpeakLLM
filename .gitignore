@@ -1,3 +1,6 @@
 datasets/
 *.env
+.vscode/
+__pycache__/
+.venv/
 
