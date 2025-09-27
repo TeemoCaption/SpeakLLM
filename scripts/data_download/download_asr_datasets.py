@@ -69,7 +69,33 @@ def main(config: Path = typer.Option(..., exists=True, help="Path to data YAML c
         if token:
             kwargs["token"] = token
         typer.echo(f"Prefetching {dataset}:{split} (streaming={streaming})")
-        ds = load_dataset(dataset, **kwargs)
+        try:
+            ds = load_dataset(dataset, **kwargs)
+        except NotImplementedError as err:
+            if not streaming:
+                raise
+            typer.echo(
+                "Streaming is not supported by this dataset on the Hub. "
+                f"Original error: {err}. "
+                "Retrying with a local download (streaming=False)."
+            )
+            kwargs["streaming"] = False
+            streaming = False
+            ds = load_dataset(dataset, **kwargs)
+        except ValueError as err:
+            if not streaming:
+                raise
+            message = str(err)
+            if "streaming" not in message.lower() and "not implemented" not in message.lower():
+                raise
+            typer.echo(
+                "Dataset reported that streaming mode is not implemented. "
+                f"Original error: {err}. "
+                "Retrying with a local download (streaming=False)."
+            )
+            kwargs["streaming"] = False
+            streaming = False
+            ds = load_dataset(dataset, **kwargs)
         if not streaming:
             _ = ds.shard(num_shards=1, index=0)
         typer.echo(f"Ready: {name}")
