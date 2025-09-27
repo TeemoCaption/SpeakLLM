@@ -11,7 +11,7 @@ lang_distribution:
   en: 0.17
 sources:
   - name: common_voice_zh_tw
-    dataset: mozilla-foundation/common_voice_17_0
+    dataset: mozilla-foundation/common_voice_16_0
     config: zh-TW
     split: train
     streaming: true
@@ -62,7 +62,7 @@ sources:
     streaming: false
     weight: 0.03
   - name: cv_en
-    dataset: mozilla-foundation/common_voice_17_0
+    dataset: mozilla-foundation/common_voice_16_0
     config: en
     split: train
     streaming: true

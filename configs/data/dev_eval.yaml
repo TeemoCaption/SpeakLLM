@@ -4,7 +4,7 @@ dev_sets:
     config: cmn_hans_cn
     split: validation
   - name: test_zh_tw
-    dataset: mozilla-foundation/common_voice_17_0
+    dataset: mozilla-foundation/common_voice_16_0
     config: zh-TW
     split: test
   - name: test_en
